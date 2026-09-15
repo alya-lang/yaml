@@ -1,28 +1,65 @@
-# Test suite for yaml
+# Test suite for yaml - Basic Scalars, Comments, and File I/O
 import "std/test"
-import "../src/lib.alya" as pkg
+import "std/fs"
+import "../src/lib.alya" as yaml
 
 function main()
-    test_suite("yaml Test Suite")
+    test_suite("YAML 1.2 - Basic Scalars, Comments, and File I/O")
     let r = runner_new()
 
-    # 1. Basic facade function
-    let res = pkg::hello("Alya")
-    runner_assert_str_eq(r, res, "Hello, Alya!", "pkg::hello returns formatted greeting")
+    # 1. Primitives (String, Int, Float, Bool, Null)
+    let y1 = "title: YAML 1.2\ncount: 42\nnegative: -17\nrate: 3.14\nenabled: true\ndebug: false\nempty_val: null\ntilde_val: ~\n"
+    let d1 = yaml::parse(y1)
 
-    # 2. Default parameter
-    let default_res = pkg::hello()
-    runner_assert_str_eq(r, default_res, "Hello, World!", "pkg::hello() uses default name")
+    runner_assert_str_eq(r, d1["title"], "YAML 1.2", "Parse plain string")
+    runner_assert_eq(r, d1["count"], 42, "Parse positive integer")
+    runner_assert_eq(r, d1["negative"], -17, "Parse negative integer")
+    runner_assert_true(r, d1["enabled"] == 1, "Parse boolean true")
+    runner_assert_true(r, d1["debug"] == 0, "Parse boolean false")
+    runner_assert_true(r, d1["empty_val"] == null, "Parse null keyword")
+    runner_assert_true(r, d1["tilde_val"] == null, "Parse tilde as null")
 
-    # 3. Modular types & config constructor
-    let cfg = pkg::new_config("Community", 3)
-    runner_assert_str_eq(r, cfg.name, "Community", "pkg::new_config sets name correctly")
-    runner_assert_str_eq(r, cfg.prefix, "Hello", "pkg::new_config sets default prefix")
-    runner_assert_eq(r, cfg.count, 3, "pkg::new_config sets count correctly")
+    # 2. Alternative Boolean keywords (yes/no, on/off)
+    let y2 = "flag_yes: yes\nflag_no: no\nflag_on: ON\nflag_off: off\n"
+    let d2 = yaml::parse(y2)
+    runner_assert_eq(r, d2["flag_yes"], 1, "Parse yes as true")
+    runner_assert_eq(r, d2["flag_no"], 0, "Parse no as false")
+    runner_assert_eq(r, d2["flag_on"], 1, "Parse ON as true")
+    runner_assert_eq(r, d2["flag_off"], 0, "Parse off as false")
 
-    # 4. Core custom formatter using struct
-    let custom_res = pkg::core_format_custom(cfg)
-    runner_assert_str_eq(r, custom_res, "Hello, Community!", "pkg::core_format_custom formats using config")
+    # 3. Number Formats (Hexadecimal, Octal, Binary)
+    let y3 = "hex_num: 0x1F\noct_num: 0o755\nbin_num: 0b1011\n"
+    let d3 = yaml::parse(y3)
+    runner_assert_eq(r, d3["hex_num"], 31, "Parse hex 0x1F -> 31")
+    runner_assert_eq(r, d3["oct_num"], 493, "Parse octal 0o755 -> 493")
+    runner_assert_eq(r, d3["bin_num"], 11, "Parse binary 0b1011 -> 11")
+
+    # 4. Quoted strings (Single and Double)
+    let y4 = "single: 'Hello ''World'''\ndouble: \"Line 1\\nLine 2\\tTabbed\"\n"
+    let d4 = yaml::parse(y4)
+    runner_assert_str_eq(r, d4["single"], "Hello 'World'", "Single quoted string with escaped quote")
+    runner_assert_str_eq(r, d4["double"], "Line 1\nLine 2\tTabbed", "Double quoted string with escapes")
+
+    # 5. Full-line and Inline Comments
+    let y5 = "# Global configuration\nserver: localhost # Default host\nport: 8080 # Main HTTP port\n# End of config\n"
+    let d5 = yaml::parse(y5)
+    runner_assert_str_eq(r, d5["server"], "localhost", "Parse value with inline comment")
+    runner_assert_eq(r, d5["port"], 8080, "Parse integer with inline comment")
+
+    # 6. File I/O (dump_file & load_file)
+    let temp_file = "temp_test_config.yaml"
+    let sample_data = {
+        "service": "auth-api",
+        "port": 9000,
+        "active": 1
+    }
+    yaml::dump_file(temp_file, sample_data)
+    runner_assert_true(r, fs_exists(temp_file), "dump_file writes YAML file to disk")
+
+    let loaded = yaml::load_file(temp_file)
+    runner_assert_str_eq(r, loaded["service"], "auth-api", "load_file parses string field")
+    runner_assert_eq(r, loaded["port"], 9000, "load_file parses integer field")
+    fs_remove(temp_file)
 
     let failed = runner_summary(r)
     if failed > 0

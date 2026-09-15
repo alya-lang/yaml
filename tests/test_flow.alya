@@ -1,0 +1,66 @@
+# Test suite for yaml - Flow Style Collections & Block Scalars
+import "std/test"
+import "../src/lib.alya" as yaml
+
+function main()
+    test_suite("YAML 1.2 - Flow Style Collections & Block Scalars")
+    let r = runner_new()
+
+    # 1. Flow Sequence (Inline List)
+    let y1 = "numbers: [ 10, 20, 30, 40 ]\nempty_list: []\n"
+    let d1 = yaml::parse(y1)
+    let nums = d1["numbers"]
+    runner_assert_eq(r, len(nums), 4, "Flow sequence length")
+    runner_assert_eq(r, nums[0], 10, "Flow sequence element 0")
+    runner_assert_eq(r, nums[3], 40, "Flow sequence element 3")
+    runner_assert_eq(r, len(d1["empty_list"]), 0, "Empty flow sequence")
+
+    # 2. Flow Mapping (Inline Map)
+    let y2 = "point: { x: 100, y: 200, label: 'Origin' }\nempty_map: {}\n"
+    let d2 = yaml::parse(y2)
+    let pt = d2["point"]
+    runner_assert_eq(r, pt["x"], 100, "Flow mapping x field")
+    runner_assert_eq(r, pt["y"], 200, "Flow mapping y field")
+    runner_assert_str_eq(r, pt["label"], "Origin", "Flow mapping label field")
+    runner_assert_eq(r, len(keys(d2["empty_map"])), 0, "Empty flow mapping")
+
+    # 3. Nested Flow Collections
+    let y3 = "nested: [ { id: 1, tags: [ 'a', 'b' ] }, { id: 2, tags: [ 'c' ] } ]\n"
+    let d3 = yaml::parse(y3)
+    let n = d3["nested"]
+    runner_assert_eq(r, len(n), 2, "Nested flow length")
+    runner_assert_eq(r, n[0]["id"], 1, "Nested flow item 0 id")
+    runner_assert_str_eq(r, n[0]["tags"][1], "b", "Nested flow item 0 tag 1")
+    runner_assert_eq(r, n[1]["id"], 2, "Nested flow item 1 id")
+
+    # 4. Root Flow Sequence
+    let y4 = "[ 'apple', 'banana', 'orange' ]"
+    let d4 = yaml::parse(y4)
+    runner_assert_eq(r, len(d4), 3, "Root flow sequence length")
+    runner_assert_str_eq(r, d4[1], "banana", "Root flow sequence element 1")
+
+    # 5. Root Flow Mapping
+    let y5 = "{ service: 'web', port: 8080 }"
+    let d5 = yaml::parse(y5)
+    runner_assert_str_eq(r, d5["service"], "web", "Root flow mapping service")
+    runner_assert_eq(r, d5["port"], 8080, "Root flow mapping port")
+
+    # 6. Literal Block Scalar (|)
+    let y6 = "script: |\n  #!/bin/bash\n  echo \"Building...\"\n  echo \"Done!\"\n"
+    let d6 = yaml::parse(y6)
+    let expected_script = "#!/bin/bash\necho \"Building...\"\necho \"Done!\""
+    runner_assert_str_eq(r, d6["script"], expected_script, "Literal block scalar preserves newlines")
+
+    # 7. Folded Block Scalar (>)
+    let y7 = "description: >\n  This is a long\n  paragraph of text that\n  spans multiple lines.\n"
+    let d7 = yaml::parse(y7)
+    let expected_desc = "This is a long paragraph of text that spans multiple lines."
+    runner_assert_str_eq(r, d7["description"], expected_desc, "Folded block scalar folds lines with spaces")
+
+    let failed = runner_summary(r)
+    if failed > 0
+        exit(1)
+    end
+end
+
+main()

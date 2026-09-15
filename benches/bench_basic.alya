@@ -1,26 +1,63 @@
-# Benchmark suite for yaml
+# Benchmark suite for yaml parser and serializer
 import "std/bench"
-import "../src/lib.alya" as pkg
+import "../src/lib.alya" as yaml
 
 function main()
-    let runner = bench_runner("yaml Micro-Benchmarks")
+    let runner = bench_runner("YAML 1.2 Micro-Benchmarks")
 
-    bench_start(runner, 100000)
+    let sample_yaml = "server:\n"
+    sample_yaml += "  host: 127.0.0.1\n"
+    sample_yaml += "  port: 8080\n"
+    sample_yaml += "  ssl: false\n"
+    sample_yaml += "  workers: 4\n"
+    sample_yaml += "endpoints:\n"
+    sample_yaml += "  - path: /api/v1/health\n"
+    sample_yaml += "    method: GET\n"
+    sample_yaml += "  - path: /api/v1/auth\n"
+    sample_yaml += "    method: POST\n"
+    sample_yaml += "tags: [ 'web', 'fast', 'alya' ]\n"
+
+    let sample_data = {
+        "server": {
+            "host": "127.0.0.1",
+            "port": 8080,
+            "ssl": 0,
+            "workers": 4
+        },
+        "endpoints": [
+            { "path": "/api/v1/health", "method": "GET" },
+            { "path": "/api/v1/auth", "method": "POST" }
+        ],
+        "tags": ["web", "fast", "alya"]
+    }
+
+    # 1. Parse Benchmark
+    bench_start(runner, 10000)
     let i = 0
-    while i < 100000
-        pkg::hello("Alya")
+    while i < 10000
+        yaml::parse(sample_yaml)
         i += 1
     end
-    bench_stop(runner, "hello() 100k calls")
+    bench_stop(runner, "yaml::parse() 10k calls")
 
-    bench_start(runner, 50000)
+    # 2. Stringify Benchmark
+    bench_start(runner, 20000)
     let j = 0
-    while j < 50000
-        let cfg = pkg::new_config("Bench", 1)
-        pkg::core_format_custom(cfg)
+    while j < 20000
+        yaml::stringify(sample_data, 2)
         j += 1
     end
-    bench_stop(runner, "new_config() + format_custom() 50k calls")
+    bench_stop(runner, "yaml::stringify() 20k calls")
+
+    # 3. Roundtrip Benchmark
+    bench_start(runner, 5000)
+    let k = 0
+    while k < 5000
+        let doc = yaml::parse(sample_yaml)
+        yaml::stringify(doc, 2)
+        k += 1
+    end
+    bench_stop(runner, "roundtrip parse+stringify 5k calls")
 
     bench_summary(runner)
 end

@@ -1,0 +1,362 @@
+# YAML 1.2 Scalar Parser & Formatter
+# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
+import "./types.alya"
+
+# Strips trailing comments while preserving hash symbols inside quotes
+function strip_yaml_comment(line)
+    let slen = len(line)
+    if slen == 0
+        return ""
+    end
+    let in_single = 0
+    let in_double = 0
+    let i = 0
+    while i < slen
+        let ch = char_at(line, i)
+        if ch == "'" and in_double == 0
+            in_single = 1 - in_single
+        elif ch == "\"" and in_single == 0
+            if i == 0 or char_at(line, i - 1) != "\\"
+                in_double = 1 - in_double
+            end
+        elif ch == "#" and in_single == 0 and in_double == 0
+            if i == 0 or char_at(line, i - 1) == " " or char_at(line, i - 1) == "\t"
+                return substring(line, 0, i).trim()
+            end
+        end
+        i += 1
+    end
+    return line.trim()
+end
+
+# Parses hexadecimal integer
+function parse_hex_int(s)
+    let slen = len(s)
+    let start = 2
+    let neg = 0
+    if char_at(s, 0) == "-"
+        neg = 1
+        start = 3
+    elif char_at(s, 0) == "+"
+        start = 3
+    end
+    let res = 0
+    let i = start
+    while i < slen
+        let ch = char_at(s, i)
+        let c = ord(ch)
+        let d = 0
+        if c >= 48 and c <= 57
+            d = c - 48
+        elif c >= 65 and c <= 70
+            d = c - 55
+        elif c >= 97 and c <= 102
+            d = c - 87
+        else
+            break
+        end
+        res = res * 16 + d
+        i += 1
+    end
+    if neg == 1
+        return -res
+    end
+    return res
+end
+
+# Parses octal integer (0o755)
+function parse_oct_int(s)
+    let slen = len(s)
+    let start = 2
+    let neg = 0
+    if char_at(s, 0) == "-"
+        neg = 1
+        start = 3
+    elif char_at(s, 0) == "+"
+        start = 3
+    end
+    let res = 0
+    let i = start
+    while i < slen
+        let ch = char_at(s, i)
+        let c = ord(ch)
+        if c >= 48 and c <= 55
+            res = res * 8 + (c - 48)
+        else
+            break
+        end
+        i += 1
+    end
+    if neg == 1
+        return -res
+    end
+    return res
+end
+
+# Parses binary integer (0b1010)
+function parse_bin_int(s)
+    let slen = len(s)
+    let start = 2
+    let neg = 0
+    if char_at(s, 0) == "-"
+        neg = 1
+        start = 3
+    elif char_at(s, 0) == "+"
+        start = 3
+    end
+    let res = 0
+    let i = start
+    while i < slen
+        let ch = char_at(s, i)
+        if ch == "0"
+            res = res * 2
+        elif ch == "1"
+            res = res * 2 + 1
+        else
+            break
+        end
+        i += 1
+    end
+    if neg == 1
+        return -res
+    end
+    return res
+end
+
+# Checks if a string represents a decimal integer
+function is_decimal_int(s)
+    let slen = len(s)
+    if slen == 0
+        return 0
+    end
+    let i = 0
+    if char_at(s, 0) == "-" or char_at(s, 0) == "+"
+        i = 1
+        if slen == 1
+            return 0
+        end
+    end
+    while i < slen
+        let ch = char_at(s, i)
+        if is_digit(ch) == 0
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+# Checks if a string represents a decimal float
+function is_decimal_float(s)
+    let slen = len(s)
+    if slen == 0
+        return 0
+    end
+    let i = 0
+    if char_at(s, 0) == "-" or char_at(s, 0) == "+"
+        i = 1
+        if slen == 1
+            return 0
+        end
+    end
+    let has_dot = 0
+    let has_digit = 0
+    while i < slen
+        let ch = char_at(s, i)
+        if ch == "."
+            if has_dot == 1
+                return 0
+            end
+            has_dot = 1
+        elif is_digit(ch) == 1
+            has_digit = 1
+        else
+            return 0
+        end
+        i += 1
+    end
+    return has_dot == 1 and has_digit == 1
+end
+
+# Unescapes a double-quoted YAML string
+function unescape_double_quoted(s)
+    let slen = len(s)
+    let res = ""
+    let i = 0
+    while i < slen
+        let ch = char_at(s, i)
+        if ch == "\\" and i + 1 < slen
+            let esc = char_at(s, i + 1)
+            if esc == "n"
+                res += "\n"
+                i += 2
+            elif esc == "r"
+                res += "\r"
+                i += 2
+            elif esc == "t"
+                res += "\t"
+                i += 2
+            elif esc == "\""
+                res += "\""
+                i += 2
+            elif esc == "\\"
+                res += "\\"
+                i += 2
+            elif esc == "0"
+                res += chr(0)
+                i += 2
+            elif esc == "b"
+                res += chr(8)
+                i += 2
+            elif esc == "f"
+                res += chr(12)
+                i += 2
+            else
+                res += esc
+                i += 2
+            end
+        else
+            res += ch
+            i += 1
+        end
+    end
+    return res
+end
+
+# Parses a YAML scalar string into its appropriate native Alya typed representation
+function parse_scalar(raw)
+    let s = raw.trim()
+    let slen = len(s)
+    if slen == 0
+        return null
+    end
+
+    # 1. Null values
+    if s == "~" or s == "null" or s == "Null" or s == "NULL"
+        return null
+    end
+
+    # 2. Boolean values
+    if s == "true" or s == "True" or s == "TRUE" or s == "yes" or s == "Yes" or s == "YES" or s == "on" or s == "On" or s == "ON"
+        return 1
+    end
+    if s == "false" or s == "False" or s == "FALSE" or s == "no" or s == "No" or s == "NO" or s == "off" or s == "Off" or s == "OFF"
+        return 0
+    end
+
+    # 3. Single-quoted strings: 'text' (no escape except '')
+    if slen >= 2 and char_at(s, 0) == "'" and char_at(s, slen - 1) == "'"
+        let inner = substring(s, 1, slen - 2)
+        return yaml_str_replace(inner, "''", "'")
+    end
+
+    # 4. Double-quoted strings: "text" (standard escapes)
+    if slen >= 2 and char_at(s, 0) == "\"" and char_at(s, slen - 1) == "\""
+        let inner = substring(s, 1, slen - 2)
+        return unescape_double_quoted(inner)
+    end
+
+    # 5. Hexadecimal numbers: 0x...
+    if slen >= 3 and (substring(s, 0, 2) == "0x" or substring(s, 0, 2) == "0X")
+        return parse_hex_int(s)
+    end
+    if slen >= 4 and (substring(s, 0, 3) == "-0x" or substring(s, 0, 3) == "+0x")
+        return parse_hex_int(s)
+    end
+
+    # 6. Octal numbers: 0o...
+    if slen >= 3 and (substring(s, 0, 2) == "0o" or substring(s, 0, 2) == "0O")
+        return parse_oct_int(s)
+    end
+    if slen >= 4 and (substring(s, 0, 3) == "-0o" or substring(s, 0, 3) == "+0o")
+        return parse_oct_int(s)
+    end
+
+    # 7. Binary numbers: 0b...
+    if slen >= 3 and (substring(s, 0, 2) == "0b" or substring(s, 0, 2) == "0B")
+        return parse_bin_int(s)
+    end
+    if slen >= 4 and (substring(s, 0, 3) == "-0b" or substring(s, 0, 3) == "+0b")
+        return parse_bin_int(s)
+    end
+
+    # 8. Decimal integers
+    if is_decimal_int(s) == 1
+        return int(s)
+    end
+
+    # 9. Floats
+    if s == ".nan" or s == ".NaN" or s == ".NAN"
+        return 0.0
+    end
+    if s == ".inf" or s == "+.inf" or s == ".Inf"
+        return 1e18
+    end
+    if s == "-.inf" or s == "-.Inf"
+        return -1e18
+    end
+    if is_decimal_float(s) == 1
+        return float(s)
+    end
+
+    # 10. Plain unquoted string
+    return s
+end
+
+# Formats an arbitrary scalar value for YAML serialization
+function format_scalar(v)
+    if is_heap_pointer(v) == 0
+        # Integer, boolean (0/1), or small scalar
+        return str(v)
+    end
+    let s = str(v)
+    let slen = len(s)
+    if slen == 0
+        return "\"\""
+    end
+
+    # Check if quotes are necessary:
+    # Contains :, #, newline, leading/trailing space, or looks like a boolean/number/null
+    let needs_quote = 0
+    if char_at(s, 0) == " " or char_at(s, slen - 1) == " "
+        needs_quote = 1
+    elif s.contains(":") or s.contains("#") or s.contains("\n") or s.contains("\"") or s.contains("'")
+        needs_quote = 1
+    elif s.contains("[") or s.contains("]") or s.contains("{") or s.contains("}")
+        needs_quote = 1
+    elif char_at(s, 0) == "-" or char_at(s, 0) == "?" or char_at(s, 0) == "*" or char_at(s, 0) == "&"
+        needs_quote = 1
+    elif s == "true" or s == "false" or s == "null" or s == "yes" or s == "no"
+        needs_quote = 1
+    elif is_decimal_int(s) == 1 or is_decimal_float(s) == 1
+        needs_quote = 1
+    end
+
+    if needs_quote == 1
+        # Format as double-quoted string with escapes
+        let res = "\""
+        let i = 0
+        while i < slen
+            let ch = char_at(s, i)
+            if ch == "\""
+                res += "\\\""
+            elif ch == "\\"
+                res += "\\\\"
+            elif ch == "\n"
+                res += "\\n"
+            elif ch == "\r"
+                res += "\\r"
+            elif ch == "\t"
+                res += "\\t"
+            else
+                res += ch
+            end
+            i += 1
+        end
+        res += "\""
+        return res
+    end
+
+    return s
+end

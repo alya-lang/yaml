@@ -1,0 +1,75 @@
+# Test suite for yaml - Serializer and Roundtrip
+import "std/test"
+import "../src/lib.alya" as yaml
+
+function main()
+    test_suite("YAML 1.2 - Serializer & Roundtrip")
+    let r = runner_new()
+
+    # 1. Simple Mapping Serialization
+    let d1 = {
+        "name": "Alya App",
+        "version": "1.0.0",
+        "port": 8080
+    }
+    let s1 = yaml::stringify(d1)
+    runner_assert_true(r, s1.contains("name: Alya App"), "Contains name")
+    runner_assert_true(r, s1.contains("version: 1.0.0"), "Contains version")
+    runner_assert_true(r, s1.contains("port: 8080"), "Contains port")
+
+    # Roundtrip check
+    let parsed1 = yaml::parse(s1)
+    runner_assert_str_eq(r, parsed1["name"], "Alya App", "Roundtrip mapping name")
+    runner_assert_str_eq(r, parsed1["version"], "1.0.0", "Roundtrip mapping version")
+    runner_assert_eq(r, parsed1["port"], 8080, "Roundtrip mapping port")
+
+    # 2. Sequence Serialization
+    let d2 = ["alpha", "beta", "gamma"]
+    let s2 = yaml::stringify(d2)
+    let parsed2 = yaml::parse(s2)
+    runner_assert_eq(r, len(parsed2), 3, "Roundtrip sequence length")
+    runner_assert_str_eq(r, parsed2[0], "alpha", "Roundtrip sequence item 0")
+    runner_assert_str_eq(r, parsed2[1], "beta", "Roundtrip sequence item 1")
+    runner_assert_str_eq(r, parsed2[2], "gamma", "Roundtrip sequence item 2")
+
+    # 3. Nested Complex Structure Roundtrip
+    let d3 = {
+        "cluster": {
+            "name": "prod-east",
+            "active": 1,
+            "nodes": [
+                { "id": "node-1", "ip": "10.0.0.1" },
+                { "id": "node-2", "ip": "10.0.0.2" }
+            ]
+        }
+    }
+    let s3 = yaml::stringify(d3)
+    let parsed3 = yaml::parse(s3)
+    runner_assert_str_eq(r, parsed3["cluster"]["name"], "prod-east", "Nested roundtrip cluster name")
+    runner_assert_eq(r, parsed3["cluster"]["active"], 1, "Nested roundtrip active boolean")
+    let nodes = parsed3["cluster"]["nodes"]
+    runner_assert_eq(r, len(nodes), 2, "Nested roundtrip nodes count")
+    runner_assert_str_eq(r, nodes[0]["id"], "node-1", "Node 0 id")
+    runner_assert_str_eq(r, nodes[0]["ip"], "10.0.0.1", "Node 0 ip")
+    runner_assert_str_eq(r, nodes[1]["id"], "node-2", "Node 1 id")
+    runner_assert_str_eq(r, nodes[1]["ip"], "10.0.0.2", "Node 1 ip")
+
+    # 4. Special Characters Quoting in Serializer
+    let d4 = {
+        "has_colon": "foo: bar",
+        "has_hash": "val # not comment",
+        "has_special": "- item"
+    }
+    let s4 = yaml::stringify(d4)
+    let parsed4 = yaml::parse(s4)
+    runner_assert_str_eq(r, parsed4["has_colon"], "foo: bar", "String with colon preserved")
+    runner_assert_str_eq(r, parsed4["has_hash"], "val # not comment", "String with hash preserved")
+    runner_assert_str_eq(r, parsed4["has_special"], "- item", "String starting with hyphen preserved")
+
+    let failed = runner_summary(r)
+    if failed > 0
+        exit(1)
+    end
+end
+
+main()

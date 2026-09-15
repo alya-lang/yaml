@@ -1,0 +1,53 @@
+# Test suite for yaml - Nested Structures, Sequences, and Multi-Document
+import "std/test"
+import "../src/lib.alya" as yaml
+
+function main()
+    test_suite("YAML 1.2 - Nested Structures, Sequences, and Multi-Document")
+    let r = runner_new()
+
+    # 1. Simple Block Sequence
+    let y1 = "items:\n  - first\n  - second\n  - third\n"
+    let d1 = yaml::parse(y1)
+    let items = d1["items"]
+    runner_assert_eq(r, len(items), 3, "Parse block sequence length")
+    runner_assert_str_eq(r, items[0], "first", "Sequence element 0")
+    runner_assert_str_eq(r, items[1], "second", "Sequence element 1")
+    runner_assert_str_eq(r, items[2], "third", "Sequence element 2")
+
+    # 2. Nested Mapping (Hierarchical configuration)
+    let y2 = "database:\n  primary:\n    host: 192.168.1.10\n    port: 5432\n  replica:\n    host: 192.168.1.11\n    port: 5433\n"
+    let d2 = yaml::parse(y2)
+    runner_assert_str_eq(r, d2["database"]["primary"]["host"], "192.168.1.10", "Nested mapping primary host")
+    runner_assert_eq(r, d2["database"]["primary"]["port"], 5432, "Nested mapping primary port")
+    runner_assert_str_eq(r, d2["database"]["replica"]["host"], "192.168.1.11", "Nested mapping replica host")
+    runner_assert_eq(r, d2["database"]["replica"]["port"], 5433, "Nested mapping replica port")
+
+    # 3. Sequence of Mappings
+    let y3 = "services:\n  - name: web\n    port: 80\n    replicas: 3\n  - name: worker\n    port: 90\n    replicas: 1\n"
+    let d3 = yaml::parse(y3)
+    let services = d3["services"]
+    runner_assert_eq(r, len(services), 2, "Sequence of mappings length")
+    runner_assert_str_eq(r, services[0]["name"], "web", "Service 0 name")
+    runner_assert_eq(r, services[0]["port"], 80, "Service 0 port")
+    runner_assert_eq(r, services[0]["replicas"], 3, "Service 0 replicas")
+    runner_assert_str_eq(r, services[1]["name"], "worker", "Service 1 name")
+    runner_assert_eq(r, services[1]["port"], 90, "Service 1 port")
+    runner_assert_eq(r, services[1]["replicas"], 1, "Service 1 replicas")
+
+    # 4. Multi-document YAML (separated by ---)
+    let y4 = "---\nkind: Service\nname: web-service\n---\nkind: Deployment\nname: web-deployment\n"
+    let docs = yaml::parse_all(y4)
+    runner_assert_eq(r, len(docs), 2, "parse_all returns 2 documents")
+    runner_assert_str_eq(r, docs[0]["kind"], "Service", "Doc 0 kind")
+    runner_assert_str_eq(r, docs[0]["name"], "web-service", "Doc 0 name")
+    runner_assert_str_eq(r, docs[1]["kind"], "Deployment", "Doc 1 kind")
+    runner_assert_str_eq(r, docs[1]["name"], "web-deployment", "Doc 1 name")
+
+    let failed = runner_summary(r)
+    if failed > 0
+        exit(1)
+    end
+end
+
+main()

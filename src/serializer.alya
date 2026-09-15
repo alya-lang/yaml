@@ -1,0 +1,122 @@
+# YAML 1.2 Serializer and Formatter
+# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
+import "./types.alya"
+import "./scalar.alya"
+
+function make_indent_str(level, indent_size)
+    let total = level * indent_size
+    let res = ""
+    let i = 0
+    while i < total
+        res += " "
+        i += 1
+    end
+    return res
+end
+
+function serialize_yaml_value(val, level, indent_size)
+    if val == null
+        return "null\n"
+    end
+
+    if is_list(val) == 1
+        let count = len(val)
+        if count == 0
+            return "[]\n"
+        end
+        let pad = make_indent_str(level, indent_size)
+        let res = ""
+        let i = 0
+        while i < count
+            let item = val[i]
+            if is_map_obj(item) == 1
+                let ks = keys(item)
+                let klen = len(ks)
+                if klen == 0
+                    res += pad + "- {}\n"
+                else
+                    let first_k = ks[0]
+                    let first_v = item[first_k]
+                    if is_map_obj(first_v) == 1 or is_list(first_v) == 1
+                        res += pad + "- " + first_k + ":\n"
+                        res += serialize_yaml_child(first_v, level + 2, indent_size)
+                    else
+                        res += pad + "- " + first_k + ": " + format_scalar(first_v) + "\n"
+                    end
+
+                    let sub_pad = pad + "  "
+                    let j = 1
+                    while j < klen
+                        let k = ks[j]
+                        let v = item[k]
+                        if is_map_obj(v) == 1 or is_list(v) == 1
+                            res += sub_pad + k + ":\n"
+                            res += serialize_yaml_child(v, level + 2, indent_size)
+                        else
+                            res += sub_pad + k + ": " + format_scalar(v) + "\n"
+                        end
+                        j += 1
+                    end
+                end
+            elif is_list(item) == 1
+                let sub_count = len(item)
+                if sub_count == 0
+                    res += pad + "- []\n"
+                else
+                    res += pad + "-\n"
+                    res += serialize_yaml_child(item, level + 1, indent_size)
+                end
+            else
+                res += pad + "- " + format_scalar(item) + "\n"
+            end
+            i += 1
+        end
+        return res
+    elif is_map_obj(val) == 1
+        let ks = keys(val)
+        let klen = len(ks)
+        if klen == 0
+            return "{}\n"
+        end
+        let pad = make_indent_str(level, indent_size)
+        let res = ""
+        let i = 0
+        while i < klen
+            let k = ks[i]
+            let v = val[k]
+            if is_map_obj(v) == 1
+                let sub_klen = len(keys(v))
+                if sub_klen == 0
+                    res += pad + k + ": {}\n"
+                else
+                    res += pad + k + ":\n"
+                    res += serialize_yaml_child(v, level + 1, indent_size)
+                end
+            elif is_list(v) == 1
+                let sub_arr_len = len(v)
+                if sub_arr_len == 0
+                    res += pad + k + ": []\n"
+                else
+                    res += pad + k + ":\n"
+                    res += serialize_yaml_child(v, level + 1, indent_size)
+                end
+            else
+                res += pad + k + ": " + format_scalar(v) + "\n"
+            end
+            i += 1
+        end
+        return res
+    else
+        return format_scalar(val) + "\n"
+    end
+end
+
+function serialize_yaml_child(val, level, indent_size)
+    return serialize_yaml_value(val, level, indent_size)
+end
+
+# Serializes data into a formatted YAML document string
+function yaml_dump(data, indent_size = 2)
+    return serialize_yaml_value(data, 0, indent_size)
+end

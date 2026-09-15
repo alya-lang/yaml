@@ -1,16 +1,147 @@
-# Types and data structures for yaml
+# YAML 1.2 Data Types & Definitions
 # Part of the Alya Language package ecosystem (https://github.com/alya-lang)
 
-struct YamlConfig
-    name
-    prefix
-    count
+# Type constants
+function yaml_type_null()
+    return 0
 end
 
-function make_config(name = "World", count = 1)
-    return YamlConfig {
-        name: name,
-        prefix: "Hello",
-        count: count
+function yaml_type_bool()
+    return 1
+end
+
+function yaml_type_int()
+    return 2
+end
+
+function yaml_type_float()
+    return 3
+end
+
+function yaml_type_string()
+    return 4
+end
+
+function yaml_type_array()
+    return 5
+end
+
+function yaml_type_map()
+    return 6
+end
+
+# Document container struct
+struct YamlDoc
+    doc_data
+end
+
+function make_doc(data)
+    return YamlDoc {
+        doc_data: data
     }
+end
+
+# Memory & Runtime Pointer Inspection
+function is_heap_pointer(v)
+    if v == null or v == 0
+        return 0
+    end
+    if v < 65536 or v > 140737488355327
+        return 0
+    end
+    return 1
+end
+
+function is_list(v)
+    if is_heap_pointer(v) == 0
+        return 0
+    end
+    let magic = peek_int(v, -16)
+    return magic == 1511063553
+end
+
+function is_map_obj(v)
+    if is_heap_pointer(v) == 0
+        return 0
+    end
+    let magic = peek_int(v, -16)
+    return magic == 1511063554
+end
+
+# String utility functions
+function yaml_str_starts_with(s, prefix)
+    let plen = len(prefix)
+    let slen = len(s)
+    if plen > slen
+        return 0
+    end
+    if plen == 0
+        return 1
+    end
+    return substring(s, 0, plen) == prefix
+end
+
+function yaml_str_ends_with(s, suffix)
+    let suflen = len(suffix)
+    let slen = len(s)
+    if suflen > slen
+        return 0
+    end
+    if suflen == 0
+        return 1
+    end
+    return substring(s, slen - suflen, suflen) == suffix
+end
+
+function yaml_str_replace(s, old_sub, new_sub)
+    let slen = len(s)
+    let olen = len(old_sub)
+    if olen == 0 or slen == 0
+        return s
+    end
+    let res = ""
+    let i = 0
+    while i < slen
+        if i + olen <= slen and substring(s, i, olen) == old_sub
+            res += new_sub
+            i += olen
+        else
+            res += char_at(s, i)
+            i += 1
+        end
+    end
+    return res
+end
+
+# Character classification
+function yaml_is_hex_digit(ch)
+    let c = ord(ch)
+    return (c >= 48 and c <= 57) or (c >= 97 and c <= 102) or (c >= 65 and c <= 70)
+end
+
+function yaml_is_oct_digit(ch)
+    let c = ord(ch)
+    return c >= 48 and c <= 55
+end
+
+function yaml_is_bin_digit(ch)
+    let c = ord(ch)
+    return c == 48 or c == 49
+end
+
+# Checks if a map contains a specified key
+function map_has_key(m, key)
+    if is_map_obj(m) == 0
+        return 0
+    end
+    let ks = keys(m)
+    let count = len(ks)
+    let i = 0
+    while i < count
+        if ks[i] == key
+            return 1
+        end
+        i += 1
+    end
+    return 0
 end

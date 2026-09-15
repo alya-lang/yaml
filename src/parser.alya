@@ -1,0 +1,362 @@
+# YAML 1.2 Block Parser
+# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
+import "./types.alya"
+import "./scalar.alya"
+import "./flow.alya"
+
+struct YamlLine
+    raw
+    indent
+    text
+    is_empty
+end
+
+function make_line(raw, indent, text, is_empty)
+    return YamlLine {
+        raw: raw,
+        indent: indent,
+        text: text,
+        is_empty: is_empty
+    }
+end
+
+# Preprocesses source text into structured lines tracking indentation
+function preprocess_yaml_lines(source)
+    let raw_lines = source.split("\n")
+    let total = len(raw_lines)
+    let res = []
+    let i = 0
+    while i < total
+        let raw = raw_lines[i]
+        let rlen = len(raw)
+        if rlen > 0 and char_at(raw, rlen - 1) == "\r"
+            raw = substring(raw, 0, rlen - 1)
+            rlen = len(raw)
+        end
+
+        # Count leading spaces/tabs
+        let indent = 0
+        while indent < rlen and (char_at(raw, indent) == " " or char_at(raw, indent) == "\t")
+            if char_at(raw, indent) == "\t"
+                indent += 2
+            else
+                indent += 1
+            end
+        end
+
+        let stripped = strip_yaml_comment(raw)
+        let is_emp = 0
+        if len(stripped) == 0 or stripped == "---" or stripped == "..."
+            is_emp = 1
+        end
+
+        let line_text = ""
+        if indent < rlen
+            line_text = substring(raw, indent, rlen - indent)
+            line_text = strip_yaml_comment(line_text)
+        end
+
+        res.push(make_line(raw, indent, line_text, is_emp))
+        i += 1
+    end
+    return res
+end
+
+# Finds the key-value colon delimiter outside quotes
+function find_colon_delimiter(text)
+    let tlen = len(text)
+    let in_single = 0
+    let in_double = 0
+    let i = 0
+    while i < tlen
+        let ch = char_at(text, i)
+        if ch == "'" and in_double == 0
+            in_single = 1 - in_single
+        elif ch == "\"" and in_single == 0
+            if i == 0 or char_at(text, i - 1) != "\\"
+                in_double = 1 - in_double
+            end
+        elif ch == ":" and in_single == 0 and in_double == 0
+            if i + 1 == tlen or char_at(text, i + 1) == " " or char_at(text, i + 1) == "\t"
+                return i
+            end
+        end
+        i += 1
+    end
+    return -1
+end
+
+# Parses multiline literal (|) or folded (>) block scalars
+function parse_block_scalar(lines, idx_ref, parent_indent, is_folded)
+    let res = ""
+    let min_child_indent = -1
+    let first = 1
+    while idx_ref[0] < len(lines)
+        let line = lines[idx_ref[0]]
+        # Empty line inside block scalar
+        if len(line.raw.trim()) == 0
+            res += "\n"
+            idx_ref[0] += 1
+            continue
+        end
+
+        if line.indent <= parent_indent
+            break
+        end
+
+        if min_child_indent == -1
+            min_child_indent = line.indent
+        end
+
+        let content = ""
+        if len(line.raw) >= min_child_indent
+            content = substring(line.raw, min_child_indent, len(line.raw) - min_child_indent)
+        else
+            content = line.raw.trim()
+        end
+
+        if first == 1
+            res += content
+            first = 0
+        else
+            if is_folded == 1
+                res += " " + content
+            else
+                res += "\n" + content
+            end
+        end
+        idx_ref[0] += 1
+    end
+
+    while len(res) > 0 and char_at(res, len(res) - 1) == "\n"
+        res = substring(res, 0, len(res) - 1)
+    end
+    return res
+end
+
+# Main recursive descent block dispatcher
+function parse_yaml_block(lines, idx_ref, min_indent)
+    let total = len(lines)
+    while idx_ref[0] < total and lines[idx_ref[0]].is_empty == 1
+        idx_ref[0] += 1
+    end
+    if idx_ref[0] >= total
+        return null
+    end
+
+    let first_line = lines[idx_ref[0]]
+    if first_line.indent < min_indent
+        return null
+    end
+
+    if yaml_str_starts_with(first_line.text, "- ") == 1 or first_line.text == "-"
+        return parse_sequence_block(lines, idx_ref, first_line.indent)
+    else
+        return parse_mapping_block(lines, idx_ref, first_line.indent)
+    end
+end
+
+# Parses block sequence (- item)
+function parse_sequence_block(lines, idx_ref, seq_indent)
+    let arr = []
+    let total = len(lines)
+
+    while idx_ref[0] < total
+        if lines[idx_ref[0]].is_empty == 1
+            idx_ref[0] += 1
+            continue
+        end
+
+        let line = lines[idx_ref[0]]
+        if line.indent < seq_indent
+            break
+        end
+
+        if line.indent == seq_indent and (yaml_str_starts_with(line.text, "- ") == 1 or line.text == "-")
+            let item_text = ""
+            if len(line.text) > 2
+                item_text = substring(line.text, 2, len(line.text) - 2).trim()
+            end
+
+            # Check if item_text is a mapping key: "- key: val"
+            let col_idx = find_colon_delimiter(item_text)
+            if col_idx != -1
+                let m = {}
+                let k = substring(item_text, 0, col_idx).trim()
+                if (yaml_str_starts_with(k, "\"") == 1 and yaml_str_ends_with(k, "\"") == 1) or (yaml_str_starts_with(k, "'") == 1 and yaml_str_ends_with(k, "'") == 1)
+                    k = substring(k, 1, len(k) - 2)
+                end
+                let v_str = substring(item_text, col_idx + 1, len(item_text) - (col_idx + 1)).trim()
+                if len(v_str) > 0
+                    if yaml_str_starts_with(v_str, "[") == 1 or yaml_str_starts_with(v_str, "{") == 1
+                        m[k] = parse_flow(v_str)
+                    else
+                        m[k] = parse_scalar(v_str)
+                    end
+                    idx_ref[0] += 1
+                else
+                    idx_ref[0] += 1
+                    let child_val = parse_yaml_block(lines, idx_ref, line.indent + 1)
+                    m[k] = child_val
+                end
+
+                # Check if there are subsequent keys for this mapping element
+                while idx_ref[0] < total
+                    if lines[idx_ref[0]].is_empty == 1
+                        idx_ref[0] += 1
+                        continue
+                    end
+                    let next_line = lines[idx_ref[0]]
+                    if next_line.indent <= seq_indent or yaml_str_starts_with(next_line.text, "- ") == 1
+                        break
+                    end
+                    let next_col = find_colon_delimiter(next_line.text)
+                    if next_col != -1
+                        let nk = substring(next_line.text, 0, next_col).trim()
+                        if (yaml_str_starts_with(nk, "\"") == 1 and yaml_str_ends_with(nk, "\"") == 1) or (yaml_str_starts_with(nk, "'") == 1 and yaml_str_ends_with(nk, "'") == 1)
+                            nk = substring(nk, 1, len(nk) - 2)
+                        end
+                        let nv_str = substring(next_line.text, next_col + 1, len(next_line.text) - (next_col + 1)).trim()
+                        if len(nv_str) > 0
+                            if yaml_str_starts_with(nv_str, "[") == 1 or yaml_str_starts_with(nv_str, "{") == 1
+                                m[nk] = parse_flow(nv_str)
+                            else
+                                m[nk] = parse_scalar(nv_str)
+                            end
+                            idx_ref[0] += 1
+                        else
+                            idx_ref[0] += 1
+                            m[nk] = parse_yaml_block(lines, idx_ref, next_line.indent + 1)
+                        end
+                    else
+                        idx_ref[0] += 1
+                    end
+                end
+
+                arr.push(m)
+            elif len(item_text) == 0
+                idx_ref[0] += 1
+                let child_val = parse_yaml_block(lines, idx_ref, seq_indent + 1)
+                arr.push(child_val)
+            elif yaml_str_starts_with(item_text, "[") == 1 or yaml_str_starts_with(item_text, "{") == 1
+                arr.push(parse_flow(item_text))
+                idx_ref[0] += 1
+            elif item_text == "|" or item_text == "|-" or item_text == "|+"
+                idx_ref[0] += 1
+                let bs = parse_block_scalar(lines, idx_ref, seq_indent, 0)
+                arr.push(bs)
+            elif item_text == ">" or item_text == ">-" or item_text == ">+"
+                idx_ref[0] += 1
+                let bs = parse_block_scalar(lines, idx_ref, seq_indent, 1)
+                arr.push(bs)
+            else
+                arr.push(parse_scalar(item_text))
+                idx_ref[0] += 1
+            end
+        else
+            break
+        end
+    end
+    return arr
+end
+
+# Parses block mapping (key: value)
+function parse_mapping_block(lines, idx_ref, map_indent)
+    let m = {}
+    let total = len(lines)
+
+    while idx_ref[0] < total
+        if lines[idx_ref[0]].is_empty == 1
+            idx_ref[0] += 1
+            continue
+        end
+
+        let line = lines[idx_ref[0]]
+        if line.indent < map_indent
+            break
+        end
+        if line.indent > map_indent
+            break
+        end
+
+        let col_idx = find_colon_delimiter(line.text)
+        if col_idx == -1
+            idx_ref[0] += 1
+            continue
+        end
+
+        let k = substring(line.text, 0, col_idx).trim()
+        if (yaml_str_starts_with(k, "\"") == 1 and yaml_str_ends_with(k, "\"") == 1) or (yaml_str_starts_with(k, "'") == 1 and yaml_str_ends_with(k, "'") == 1)
+            k = substring(k, 1, len(k) - 2)
+        end
+
+        let v_str = substring(line.text, col_idx + 1, len(line.text) - (col_idx + 1)).trim()
+
+        if len(v_str) == 0
+            idx_ref[0] += 1
+            while idx_ref[0] < total and lines[idx_ref[0]].is_empty == 1
+                idx_ref[0] += 1
+            end
+            if idx_ref[0] < total and lines[idx_ref[0]].indent > map_indent
+                let child_val = parse_yaml_block(lines, idx_ref, map_indent + 1)
+                m[k] = child_val
+            else
+                m[k] = null
+            end
+        elif v_str == "|" or v_str == "|-" or v_str == "|+"
+            idx_ref[0] += 1
+            let bs = parse_block_scalar(lines, idx_ref, map_indent, 0)
+            m[k] = bs
+        elif v_str == ">" or v_str == ">-" or v_str == ">+"
+            idx_ref[0] += 1
+            let bs = parse_block_scalar(lines, idx_ref, map_indent, 1)
+            m[k] = bs
+        elif yaml_str_starts_with(v_str, "[") == 1 or yaml_str_starts_with(v_str, "{") == 1
+            m[k] = parse_flow(v_str)
+            idx_ref[0] += 1
+        else
+            m[k] = parse_scalar(v_str)
+            idx_ref[0] += 1
+        end
+    end
+    return m
+end
+
+# Parses a single YAML document string
+function yaml_parse(source)
+    let s = source.trim()
+    if len(s) == 0
+        return null
+    end
+
+    if yaml_str_starts_with(s, "[") == 1 and yaml_str_ends_with(s, "]") == 1
+        return parse_flow(s)
+    end
+    if yaml_str_starts_with(s, "{") == 1 and yaml_str_ends_with(s, "}") == 1
+        return parse_flow(s)
+    end
+
+    let lines = preprocess_yaml_lines(source)
+    let idx = [0]
+    return parse_yaml_block(lines, idx, 0)
+end
+
+# Parses multi-document YAML (separated by ---)
+function yaml_parse_all(source)
+    let parts = source.split("\n---")
+    let count = len(parts)
+    let docs = []
+    let i = 0
+    while i < count
+        let part = parts[i].trim()
+        if len(part) > 0 and part != "..."
+            let doc = yaml_parse(part)
+            if doc != null
+                docs.push(doc)
+            end
+        end
+        i += 1
+    end
+    return docs
+end

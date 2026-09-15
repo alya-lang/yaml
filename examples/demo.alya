@@ -1,15 +1,75 @@
-# Example usage of yaml
-import "../src/lib.alya" as pkg
+# Real-world demonstration of YAML 1.2 parsing and serialization in Alya
+import "../src/lib.alya" as yaml
 
 function main()
-    # Basic greeting
-    let msg = pkg::hello("Alya Developer")
-    say msg
+    say "=================================================="
+    say "        Alya YAML 1.2 Parser & Serializer Demo    "
+    say "=================================================="
 
-    # Using configuration struct
-    let cfg = pkg::new_config("Modular Architecture", 5)
-    say "Target: " + cfg.name
-    say "Formatted: " + pkg::core_format_custom(cfg)
+    # 1. Parsing a Docker Compose style YAML configuration
+    let compose_yaml = "version: '3.8'\n"
+    compose_yaml += "services:\n"
+    compose_yaml += "  web:\n"
+    compose_yaml += "    image: nginx:alpine\n"
+    compose_yaml += "    ports:\n"
+    compose_yaml += "      - 80:80\n"
+    compose_yaml += "      - 443:443\n"
+    compose_yaml += "    restart: always\n"
+    compose_yaml += "  api:\n"
+    compose_yaml += "    image: alya-backend:latest\n"
+    compose_yaml += "    environment:\n"
+    compose_yaml += "      ENV: production\n"
+    compose_yaml += "      PORT: 8080\n"
+    compose_yaml += "      ENABLE_METRICS: true\n"
+    compose_yaml += "    tags: [ 'backend', 'api', 'v1' ]\n"
+
+    say "\n1. Parsing Docker Compose YAML:"
+    let config = yaml::parse(compose_yaml)
+    say "  Compose Version : " + str(config["version"])
+    say "  Web Image       : " + str(config["services"]["web"]["image"])
+    say "  Web Restart     : " + str(config["services"]["web"]["restart"])
+    say "  API Port        : " + str(config["services"]["api"]["environment"]["PORT"])
+    say "  API Metrics     : " + str(config["services"]["api"]["environment"]["ENABLE_METRICS"])
+
+    let web_ports = config["services"]["web"]["ports"]
+    say "  Web Ports Count : " + str(len(web_ports))
+    let i = 0
+    while i < len(web_ports)
+        say "    - " + str(web_ports[i])
+        i += 1
+    end
+
+    let api_tags = config["services"]["api"]["tags"]
+    say "  API Flow Tags   : " + str(api_tags[0]) + ", " + str(api_tags[1]) + ", " + str(api_tags[2])
+
+    # 2. Serializing native Alya data to YAML
+    say "\n2. Serializing Native Alya Data to YAML:"
+    let deployment = {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": {
+            "name": "alya-service",
+            "labels": {
+                "tier": "production"
+            }
+        },
+        "spec": {
+            "replicas": 3,
+            "containers": [
+                {
+                    "name": "core-engine",
+                    "image": "alya-lang/core:v0.1.0",
+                    "resources": {
+                        "cpu": "500m",
+                        "memory": "256Mi"
+                    }
+                }
+            ]
+        }
+    }
+
+    let serialized = yaml::stringify(deployment, 2)
+    say serialized
 end
 
 main()

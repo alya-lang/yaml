@@ -1,14 +1,40 @@
-# yaml library
+# YAML 1.2 Library - Public API Facade
 # Part of the Alya Language package ecosystem (https://github.com/alya-lang)
 
 import "./types.alya"
-import "./core/formatter.alya"
+import "./scalar.alya"
+import "./flow.alya"
+import "./parser.alya"
+import "./serializer.alya"
 
-# Public facade functions
-function hello(name = "World")
-    return core_format_greeting(name)
+# Parses a YAML string into native Alya data structures (maps, arrays, scalars)
+function parse(yaml_str)
+    return yaml_parse(yaml_str)
 end
 
-function new_config(name = "World", count = 1)
-    return make_config(name, count)
+# Parses a multi-document YAML string (separated by ---) into an array of documents
+function parse_all(yaml_str)
+    return yaml_parse_all(yaml_str)
+end
+
+# Serializes an Alya data structure into a formatted YAML string
+function stringify(data, indent_size = 2)
+    return yaml_dump(data, indent_size)
+end
+
+# Alias for stringify
+function dump(data, indent_size = 2)
+    return yaml_dump(data, indent_size)
+end
+
+# Loads and parses a YAML file from disk
+function load_file(file_path)
+    let content = read_file(file_path)
+    return parse(content)
+end
+
+# Serializes data and writes it to a YAML file on disk
+function dump_file(file_path, data, indent_size = 2)
+    let out = yaml_dump(data, indent_size)
+    write_file(file_path, out)
 end
