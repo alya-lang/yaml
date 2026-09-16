@@ -1,7 +1,6 @@
 # YAML 1.2 Data Types & Definitions
 # Part of the Alya Language package ecosystem (https://github.com/alya-lang)
 
-# Public enumeration for YAML 1.2 node types
 pub enum YamlNodeType
     Null,
     Bool,
@@ -10,35 +9,6 @@ pub enum YamlNodeType
     String,
     Array,
     Map
-end
-
-# Backward-compatible type constant functions
-pub function yaml_type_null()
-    return YamlNodeType.Null
-end
-
-pub function yaml_type_bool()
-    return YamlNodeType.Bool
-end
-
-pub function yaml_type_int()
-    return YamlNodeType.Int
-end
-
-pub function yaml_type_float()
-    return YamlNodeType.Float
-end
-
-pub function yaml_type_string()
-    return YamlNodeType.String
-end
-
-pub function yaml_type_array()
-    return YamlNodeType.Array
-end
-
-pub function yaml_type_map()
-    return YamlNodeType.Map
 end
 
 # Document container struct
