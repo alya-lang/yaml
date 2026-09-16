@@ -8,33 +8,33 @@ import "./parser.alya"
 import "./serializer.alya"
 
 # Parses a YAML string into native Alya data structures (maps, arrays, scalars)
-function parse(yaml_str)
+pub function parse(yaml_str)
     return yaml_parse(yaml_str)
 end
 
 # Parses a multi-document YAML string (separated by ---) into an array of documents
-function parse_all(yaml_str)
+pub function parse_all(yaml_str)
     return yaml_parse_all(yaml_str)
 end
 
 # Serializes an Alya data structure into a formatted YAML string
-function stringify(data, indent_size = 2)
+pub function stringify(data, indent_size = 2)
     return yaml_dump(data, indent_size)
 end
 
 # Alias for stringify
-function dump(data, indent_size = 2)
+pub function dump(data, indent_size = 2)
     return yaml_dump(data, indent_size)
 end
 
 # Loads and parses a YAML file from disk
-function load_file(file_path)
+pub function load_file(file_path)
     let content = read_file(file_path)
     return parse(content)
 end
 
 # Serializes data and writes it to a YAML file on disk
-function dump_file(file_path, data, indent_size = 2)
+pub function dump_file(file_path, data, indent_size = 2)
     let out = yaml_dump(data, indent_size)
     write_file(file_path, out)
 end

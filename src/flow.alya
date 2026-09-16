@@ -5,11 +5,11 @@ import "./types.alya"
 import "./scalar.alya"
 
 # Helper to skip whitespace in flow string
-function flow_skip_ws(s, pos, slen)
+pub function flow_skip_ws(s, pos, slen)
     while pos[0] < slen
         let ch = char_at(s, pos[0])
         if ch == " " or ch == "\t" or ch == "\n" or ch == "\r"
-            pos[0] = pos[0] + 1
+            pos[0] += 1
         else
             break
         end
@@ -17,54 +17,54 @@ function flow_skip_ws(s, pos, slen)
 end
 
 # Parses a single-quoted string in flow style
-function flow_parse_single_quote(s, pos, slen)
-    pos[0] = pos[0] + 1
+pub function flow_parse_single_quote(s, pos, slen)
+    pos[0] += 1
     let res = ""
     while pos[0] < slen
         let ch = char_at(s, pos[0])
         if ch == "'"
             if pos[0] + 1 < slen and char_at(s, pos[0] + 1) == "'"
                 res += "'"
-                pos[0] = pos[0] + 2
+                pos[0] += 2
             else
-                pos[0] = pos[0] + 1
+                pos[0] += 1
                 break
             end
         else
             res += ch
-            pos[0] = pos[0] + 1
+            pos[0] += 1
         end
     end
     return res
 end
 
 # Parses a double-quoted string in flow style
-function flow_parse_double_quote(s, pos, slen)
-    pos[0] = pos[0] + 1
+pub function flow_parse_double_quote(s, pos, slen)
+    pos[0] += 1
     let raw = ""
     while pos[0] < slen
         let ch = char_at(s, pos[0])
         if ch == "\""
-            pos[0] = pos[0] + 1
+            pos[0] += 1
             break
         elif ch == "\\"
             if pos[0] + 1 < slen
                 raw += "\\" + char_at(s, pos[0] + 1)
-                pos[0] = pos[0] + 2
+                pos[0] += 2
             else
                 raw += "\\"
-                pos[0] = pos[0] + 1
+                pos[0] += 1
             end
         else
             raw += ch
-            pos[0] = pos[0] + 1
+            pos[0] += 1
         end
     end
     return unescape_double_quoted(raw)
 end
 
 # Parses an unquoted scalar in flow style up to a delimiter (, or ] or } or :)
-function flow_parse_plain(s, pos, slen, stop_on_colon = 0)
+pub function flow_parse_plain(s, pos, slen, stop_on_colon = 0)
     let start = pos[0]
     while pos[0] < slen
         let ch = char_at(s, pos[0])
@@ -74,39 +74,19 @@ function flow_parse_plain(s, pos, slen, stop_on_colon = 0)
         if stop_on_colon == 1 and ch == ":"
             break
         end
-        pos[0] = pos[0] + 1
+        pos[0] += 1
     end
-    let sub = substring(s, start, pos[0] - start).trim()
+    let sub = s[start..pos[0]].trim()
     return parse_scalar(sub)
 end
 
-# Forward declaration helper
-function flow_parse_value(s, pos, slen)
-    flow_skip_ws(s, pos, slen)
-    if pos[0] >= slen
-        return null
-    end
-    let ch = char_at(s, pos[0])
-    if ch == "["
-        return flow_parse_sequence(s, pos, slen)
-    elif ch == "{"
-        return flow_parse_mapping(s, pos, slen)
-    elif ch == "'"
-        return flow_parse_single_quote(s, pos, slen)
-    elif ch == "\""
-        return flow_parse_double_quote(s, pos, slen)
-    else
-        return flow_parse_plain(s, pos, slen, 0)
-    end
-end
-
 # Parses an inline flow sequence: [ item1, item2, ... ]
-function flow_parse_sequence(s, pos, slen)
-    pos[0] = pos[0] + 1
+pub function flow_parse_sequence(s, pos, slen)
+    pos[0] += 1
     let arr = []
     flow_skip_ws(s, pos, slen)
     if pos[0] < slen and char_at(s, pos[0]) == "]"
-        pos[0] = pos[0] + 1
+        pos[0] += 1
         return arr
     end
 
@@ -114,7 +94,7 @@ function flow_parse_sequence(s, pos, slen)
         flow_skip_ws(s, pos, slen)
         if pos[0] >= slen or char_at(s, pos[0]) == "]"
             if pos[0] < slen
-                pos[0] = pos[0] + 1
+                pos[0] += 1
             end
             break
         end
@@ -124,9 +104,9 @@ function flow_parse_sequence(s, pos, slen)
 
         flow_skip_ws(s, pos, slen)
         if pos[0] < slen and char_at(s, pos[0]) == ","
-            pos[0] = pos[0] + 1
+            pos[0] += 1
         elif pos[0] < slen and char_at(s, pos[0]) == "]"
-            pos[0] = pos[0] + 1
+            pos[0] += 1
             break
         else
             break
@@ -136,12 +116,12 @@ function flow_parse_sequence(s, pos, slen)
 end
 
 # Parses an inline flow mapping: { key1: val1, key2: val2, ... }
-function flow_parse_mapping(s, pos, slen)
-    pos[0] = pos[0] + 1
+pub function flow_parse_mapping(s, pos, slen)
+    pos[0] += 1
     let m = {}
     flow_skip_ws(s, pos, slen)
     if pos[0] < slen and char_at(s, pos[0]) == "}"
-        pos[0] = pos[0] + 1
+        pos[0] += 1
         return m
     end
 
@@ -149,7 +129,7 @@ function flow_parse_mapping(s, pos, slen)
         flow_skip_ws(s, pos, slen)
         if pos[0] >= slen or char_at(s, pos[0]) == "}"
             if pos[0] < slen
-                pos[0] = pos[0] + 1
+                pos[0] += 1
             end
             break
         end
@@ -157,18 +137,17 @@ function flow_parse_mapping(s, pos, slen)
         # Parse key
         let key_str = ""
         let ch = char_at(s, pos[0])
-        if ch == "'"
-            key_str = flow_parse_single_quote(s, pos, slen)
-        elif ch == "\""
-            key_str = flow_parse_double_quote(s, pos, slen)
-        else
-            let raw_k = flow_parse_plain(s, pos, slen, 1)
-            key_str = str(raw_k)
+        when ch
+            is "'"  then key_str = flow_parse_single_quote(s, pos, slen)
+            is "\"" then key_str = flow_parse_double_quote(s, pos, slen)
+            else
+                let raw_k = flow_parse_plain(s, pos, slen, 1)
+                key_str = str(raw_k)
         end
 
         flow_skip_ws(s, pos, slen)
         if pos[0] < slen and char_at(s, pos[0]) == ":"
-            pos[0] = pos[0] + 1
+            pos[0] += 1
         end
 
         # Parse value
@@ -177,9 +156,9 @@ function flow_parse_mapping(s, pos, slen)
 
         flow_skip_ws(s, pos, slen)
         if pos[0] < slen and char_at(s, pos[0]) == ","
-            pos[0] = pos[0] + 1
+            pos[0] += 1
         elif pos[0] < slen and char_at(s, pos[0]) == "}"
-            pos[0] = pos[0] + 1
+            pos[0] += 1
             break
         else
             break
@@ -188,8 +167,24 @@ function flow_parse_mapping(s, pos, slen)
     return m
 end
 
+# Forward declaration helper
+pub function flow_parse_value(s, pos, slen)
+    flow_skip_ws(s, pos, slen)
+    if pos[0] >= slen
+        return null
+    end
+    let ch = char_at(s, pos[0])
+    when ch
+        is "["  then return flow_parse_sequence(s, pos, slen)
+        is "{"  then return flow_parse_mapping(s, pos, slen)
+        is "'"  then return flow_parse_single_quote(s, pos, slen)
+        is "\"" then return flow_parse_double_quote(s, pos, slen)
+        else         return flow_parse_plain(s, pos, slen, 0)
+    end
+end
+
 # Public convenience helper to parse a flow string
-function parse_flow(s)
+pub function parse_flow(s)
     let pos = [0]
     let slen = len(s)
     return flow_parse_value(s, pos, slen)

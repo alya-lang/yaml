@@ -16,8 +16,8 @@ function main()
     runner_assert_eq(r, d1["negative"], -17, "Parse negative integer")
     runner_assert_true(r, d1["enabled"] == 1, "Parse boolean true")
     runner_assert_true(r, d1["debug"] == 0, "Parse boolean false")
-    runner_assert_true(r, d1["empty_val"] == null, "Parse null keyword")
-    runner_assert_true(r, d1["tilde_val"] == null, "Parse tilde as null")
+    runner_assert_true(r, d1["empty_val"] is null, "Parse null keyword")
+    runner_assert_true(r, d1["tilde_val"] is null, "Parse tilde as null")
 
     # 2. Alternative Boolean keywords (yes/no, on/off)
     let y2 = "flag_yes: yes\nflag_no: no\nflag_on: ON\nflag_off: off\n"

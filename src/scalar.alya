@@ -4,7 +4,7 @@
 import "./types.alya"
 
 # Strips trailing comments while preserving hash symbols inside quotes
-function strip_yaml_comment(line)
+pub function strip_yaml_comment(line)
     let slen = len(line)
     if slen == 0
         return ""
@@ -22,7 +22,7 @@ function strip_yaml_comment(line)
             end
         elif ch == "#" and in_single == 0 and in_double == 0
             if i == 0 or char_at(line, i - 1) == " " or char_at(line, i - 1) == "\t"
-                return substring(line, 0, i).trim()
+                return line[0..i].trim()
             end
         end
         i += 1
@@ -125,7 +125,7 @@ function parse_bin_int(s)
 end
 
 # Checks if a string represents a decimal integer
-function is_decimal_int(s)
+pub function is_decimal_int(s)
     let slen = len(s)
     if slen == 0
         return 0
@@ -148,7 +148,7 @@ function is_decimal_int(s)
 end
 
 # Checks if a string represents a decimal float
-function is_decimal_float(s)
+pub function is_decimal_float(s)
     let slen = len(s)
     if slen == 0
         return 0
@@ -180,7 +180,7 @@ function is_decimal_float(s)
 end
 
 # Unescapes a double-quoted YAML string
-function unescape_double_quoted(s)
+pub function unescape_double_quoted(s)
     let slen = len(s)
     let res = ""
     let i = 0
@@ -188,33 +188,34 @@ function unescape_double_quoted(s)
         let ch = char_at(s, i)
         if ch == "\\" and i + 1 < slen
             let esc = char_at(s, i + 1)
-            if esc == "n"
-                res += "\n"
-                i += 2
-            elif esc == "r"
-                res += "\r"
-                i += 2
-            elif esc == "t"
-                res += "\t"
-                i += 2
-            elif esc == "\""
-                res += "\""
-                i += 2
-            elif esc == "\\"
-                res += "\\"
-                i += 2
-            elif esc == "0"
-                res += chr(0)
-                i += 2
-            elif esc == "b"
-                res += chr(8)
-                i += 2
-            elif esc == "f"
-                res += chr(12)
-                i += 2
-            else
-                res += esc
-                i += 2
+            when esc
+                is "n" then
+                    res += "\n"
+                    i += 2
+                is "r" then
+                    res += "\r"
+                    i += 2
+                is "t" then
+                    res += "\t"
+                    i += 2
+                is "\"" then
+                    res += "\""
+                    i += 2
+                is "\\" then
+                    res += "\\"
+                    i += 2
+                is "0" then
+                    res += chr(0)
+                    i += 2
+                is "b" then
+                    res += chr(8)
+                    i += 2
+                is "f" then
+                    res += chr(12)
+                    i += 2
+                else
+                    res += esc
+                    i += 2
             end
         else
             res += ch
@@ -225,7 +226,7 @@ function unescape_double_quoted(s)
 end
 
 # Parses a YAML scalar string into its appropriate native Alya typed representation
-function parse_scalar(raw)
+pub function parse_scalar(raw)
     let s = raw.trim()
     let slen = len(s)
     if slen == 0
@@ -247,37 +248,37 @@ function parse_scalar(raw)
 
     # 3. Single-quoted strings: 'text' (no escape except '')
     if slen >= 2 and char_at(s, 0) == "'" and char_at(s, slen - 1) == "'"
-        let inner = substring(s, 1, slen - 2)
+        let inner = s[1..slen - 1]
         return yaml_str_replace(inner, "''", "'")
     end
 
     # 4. Double-quoted strings: "text" (standard escapes)
     if slen >= 2 and char_at(s, 0) == "\"" and char_at(s, slen - 1) == "\""
-        let inner = substring(s, 1, slen - 2)
+        let inner = s[1..slen - 1]
         return unescape_double_quoted(inner)
     end
 
     # 5. Hexadecimal numbers: 0x...
-    if slen >= 3 and (substring(s, 0, 2) == "0x" or substring(s, 0, 2) == "0X")
+    if slen >= 3 and (s[0..2] == "0x" or s[0..2] == "0X")
         return parse_hex_int(s)
     end
-    if slen >= 4 and (substring(s, 0, 3) == "-0x" or substring(s, 0, 3) == "+0x")
+    if slen >= 4 and (s[0..3] == "-0x" or s[0..3] == "+0x")
         return parse_hex_int(s)
     end
 
     # 6. Octal numbers: 0o...
-    if slen >= 3 and (substring(s, 0, 2) == "0o" or substring(s, 0, 2) == "0O")
+    if slen >= 3 and (s[0..2] == "0o" or s[0..2] == "0O")
         return parse_oct_int(s)
     end
-    if slen >= 4 and (substring(s, 0, 3) == "-0o" or substring(s, 0, 3) == "+0o")
+    if slen >= 4 and (s[0..3] == "-0o" or s[0..3] == "+0o")
         return parse_oct_int(s)
     end
 
     # 7. Binary numbers: 0b...
-    if slen >= 3 and (substring(s, 0, 2) == "0b" or substring(s, 0, 2) == "0B")
+    if slen >= 3 and (s[0..2] == "0b" or s[0..2] == "0B")
         return parse_bin_int(s)
     end
-    if slen >= 4 and (substring(s, 0, 3) == "-0b" or substring(s, 0, 3) == "+0b")
+    if slen >= 4 and (s[0..3] == "-0b" or s[0..3] == "+0b")
         return parse_bin_int(s)
     end
 
@@ -305,7 +306,7 @@ function parse_scalar(raw)
 end
 
 # Formats an arbitrary scalar value for YAML serialization
-function format_scalar(v)
+pub function format_scalar(v)
     if is_heap_pointer(v) == 0
         # Integer, boolean (0/1), or small scalar
         return str(v)
@@ -317,7 +318,6 @@ function format_scalar(v)
     end
 
     # Check if quotes are necessary:
-    # Contains :, #, newline, leading/trailing space, or looks like a boolean/number/null
     let needs_quote = 0
     if char_at(s, 0) == " " or char_at(s, slen - 1) == " "
         needs_quote = 1
@@ -339,18 +339,13 @@ function format_scalar(v)
         let i = 0
         while i < slen
             let ch = char_at(s, i)
-            if ch == "\""
-                res += "\\\""
-            elif ch == "\\"
-                res += "\\\\"
-            elif ch == "\n"
-                res += "\\n"
-            elif ch == "\r"
-                res += "\\r"
-            elif ch == "\t"
-                res += "\\t"
-            else
-                res += ch
+            when ch
+                is "\"" then res += "\\\""
+                is "\\" then res += "\\\\"
+                is "\n" then res += "\\n"
+                is "\r" then res += "\\r"
+                is "\t" then res += "\\t"
+                else         res += ch
             end
             i += 1
         end

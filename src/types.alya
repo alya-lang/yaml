@@ -1,49 +1,68 @@
 # YAML 1.2 Data Types & Definitions
 # Part of the Alya Language package ecosystem (https://github.com/alya-lang)
 
-# Type constants
-function yaml_type_null()
-    return 0
+# Public enumeration for YAML 1.2 node types
+pub enum YamlNodeType
+    Null,
+    Bool,
+    Int,
+    Float,
+    String,
+    Array,
+    Map
 end
 
-function yaml_type_bool()
-    return 1
+# Backward-compatible type constant functions
+pub function yaml_type_null()
+    return YamlNodeType.Null
 end
 
-function yaml_type_int()
-    return 2
+pub function yaml_type_bool()
+    return YamlNodeType.Bool
 end
 
-function yaml_type_float()
-    return 3
+pub function yaml_type_int()
+    return YamlNodeType.Int
 end
 
-function yaml_type_string()
-    return 4
+pub function yaml_type_float()
+    return YamlNodeType.Float
 end
 
-function yaml_type_array()
-    return 5
+pub function yaml_type_string()
+    return YamlNodeType.String
 end
 
-function yaml_type_map()
-    return 6
+pub function yaml_type_array()
+    return YamlNodeType.Array
+end
+
+pub function yaml_type_map()
+    return YamlNodeType.Map
 end
 
 # Document container struct
-struct YamlDoc
+pub struct YamlDoc
     doc_data
 end
 
-function make_doc(data)
+pub function YamlDoc.get(self)
+    return self.doc_data
+end
+
+pub function YamlDoc.data(self)
+    return self.doc_data
+end
+
+pub function make_doc(data)
     return YamlDoc {
         doc_data: data
     }
 end
 
 # Memory & Runtime Pointer Inspection
-function is_heap_pointer(v)
-    if v == null or v == 0
+pub function is_heap_pointer(v)
+    if v is null or v == 0
         return 0
     end
     if v < 65536 or v > 140737488355327
@@ -52,7 +71,7 @@ function is_heap_pointer(v)
     return 1
 end
 
-function is_list(v)
+pub function is_list(v)
     if is_heap_pointer(v) == 0
         return 0
     end
@@ -60,7 +79,7 @@ function is_list(v)
     return magic == 1511063553
 end
 
-function is_map_obj(v)
+pub function is_map_obj(v)
     if is_heap_pointer(v) == 0
         return 0
     end
@@ -69,7 +88,7 @@ function is_map_obj(v)
 end
 
 # String utility functions
-function yaml_str_starts_with(s, prefix)
+pub function yaml_str_starts_with(s, prefix)
     let plen = len(prefix)
     let slen = len(s)
     if plen > slen
@@ -78,10 +97,10 @@ function yaml_str_starts_with(s, prefix)
     if plen == 0
         return 1
     end
-    return substring(s, 0, plen) == prefix
+    return s[0..plen] == prefix
 end
 
-function yaml_str_ends_with(s, suffix)
+pub function yaml_str_ends_with(s, suffix)
     let suflen = len(suffix)
     let slen = len(s)
     if suflen > slen
@@ -90,10 +109,10 @@ function yaml_str_ends_with(s, suffix)
     if suflen == 0
         return 1
     end
-    return substring(s, slen - suflen, suflen) == suffix
+    return s[slen - suflen..slen] == suffix
 end
 
-function yaml_str_replace(s, old_sub, new_sub)
+pub function yaml_str_replace(s, old_sub, new_sub)
     let slen = len(s)
     let olen = len(old_sub)
     if olen == 0 or slen == 0
@@ -102,7 +121,7 @@ function yaml_str_replace(s, old_sub, new_sub)
     let res = ""
     let i = 0
     while i < slen
-        if i + olen <= slen and substring(s, i, olen) == old_sub
+        if i + olen <= slen and s[i..i + olen] == old_sub
             res += new_sub
             i += olen
         else
@@ -130,18 +149,9 @@ function yaml_is_bin_digit(ch)
 end
 
 # Checks if a map contains a specified key
-function map_has_key(m, key)
+pub function map_has_key(m, key)
     if is_map_obj(m) == 0
         return 0
     end
-    let ks = keys(m)
-    let count = len(ks)
-    let i = 0
-    while i < count
-        if ks[i] == key
-            return 1
-        end
-        i += 1
-    end
-    return 0
+    return key in m
 end

@@ -15,8 +15,8 @@ function make_indent_str(level, indent_size)
     return res
 end
 
-function serialize_yaml_value(val, level, indent_size)
-    if val == null
+pub function serialize_yaml_value(val, level, indent_size)
+    if val is null
         return "null\n"
     end
 
@@ -27,9 +27,7 @@ function serialize_yaml_value(val, level, indent_size)
         end
         let pad = make_indent_str(level, indent_size)
         let res = ""
-        let i = 0
-        while i < count
-            let item = val[i]
+        for item in val
             if is_map_obj(item) == 1
                 let ks = keys(item)
                 let klen = len(ks)
@@ -70,7 +68,6 @@ function serialize_yaml_value(val, level, indent_size)
             else
                 res += pad + "- " + format_scalar(item) + "\n"
             end
-            i += 1
         end
         return res
     elif is_map_obj(val) == 1
@@ -81,9 +78,7 @@ function serialize_yaml_value(val, level, indent_size)
         end
         let pad = make_indent_str(level, indent_size)
         let res = ""
-        let i = 0
-        while i < klen
-            let k = ks[i]
+        for k in ks
             let v = val[k]
             if is_map_obj(v) == 1
                 let sub_klen = len(keys(v))
@@ -104,7 +99,6 @@ function serialize_yaml_value(val, level, indent_size)
             else
                 res += pad + k + ": " + format_scalar(v) + "\n"
             end
-            i += 1
         end
         return res
     else
@@ -112,11 +106,11 @@ function serialize_yaml_value(val, level, indent_size)
     end
 end
 
-function serialize_yaml_child(val, level, indent_size)
+pub function serialize_yaml_child(val, level, indent_size)
     return serialize_yaml_value(val, level, indent_size)
 end
 
 # Serializes data into a formatted YAML document string
-function yaml_dump(data, indent_size = 2)
+pub function yaml_dump(data, indent_size = 2)
     return serialize_yaml_value(data, 0, indent_size)
 end
