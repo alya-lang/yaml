@@ -11,3 +11,7 @@ repository = "https://github.com/alya-lang/yaml"
 keywords = ["alya", "alya-lang", "package", "yaml", "yaml", "parser", "serializer", "config", "data"]
 
 [dependencies]
+
+# [lint]
+# disabled_rules = []
+# exclude = []
