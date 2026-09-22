@@ -1,4 +1,6 @@
-# Real-world demonstration of YAML 1.2 parsing and serialization in Alya
+## Demo of YAML 1.2 parsing and serialization
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
 import "../src/lib.alya" as yaml
 
 function main()
@@ -25,20 +27,30 @@ function main()
 
     say "\n1. Parsing Docker Compose YAML:"
     let config = yaml::parse(compose_yaml)
-    say "  Compose Version : " + str(config["version"])
-    say "  Web Image       : " + str(config["services"]["web"]["image"])
-    say "  Web Restart     : " + str(config["services"]["web"]["restart"])
-    say "  API Port        : " + str(config["services"]["api"]["environment"]["PORT"])
-    say "  API Metrics     : " + str(config["services"]["api"]["environment"]["ENABLE_METRICS"])
+    let compose_ver = str(config["version"])
+    let web_image = str(config["services"]["web"]["image"])
+    let web_restart = str(config["services"]["web"]["restart"])
+    let api_port = config["services"]["api"]["environment"]["PORT"]
+    let api_metrics = config["services"]["api"]["environment"]["ENABLE_METRICS"]
+    say "  Compose Version : {compose_ver}"
+    say "  Web Image       : {web_image}"
+    say "  Web Restart     : {web_restart}"
+    say "  API Port        : {api_port}"
+    say "  API Metrics     : {api_metrics}"
 
     let web_ports = config["services"]["web"]["ports"]
-    say "  Web Ports Count : " + str(len(web_ports))
+    let web_port_count = len(web_ports)
+    say "  Web Ports Count : {web_port_count}"
     for port in web_ports
-        say "    - " + str(port)
+        let port_str = str(port)
+        say "    - {port_str}"
     end
 
     let api_tags = config["services"]["api"]["tags"]
-    say "  API Flow Tags   : " + str(api_tags[0]) + ", " + str(api_tags[1]) + ", " + str(api_tags[2])
+    let tag0 = str(api_tags[0])
+    let tag1 = str(api_tags[1])
+    let tag2 = str(api_tags[2])
+    say "  API Flow Tags   : {tag0}, {tag1}, {tag2}"
 
     # 2. Serializing native Alya data to YAML
     say "\n2. Serializing Native Alya Data to YAML:"

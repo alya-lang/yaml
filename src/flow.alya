@@ -1,11 +1,21 @@
-# YAML 1.2 Flow Style (Inline Collections) Parser
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # yaml/flow
+##
+## YAML 1.2 flow style (inline collections) parser.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Parses inline sequences (`[a, b]`), mappings (`{k: v}`), quoted strings,
+## and plain scalars using a shared cursor protocol.
 
 import "./types.alya"
 import "./scalar.alya"
 
-# Helper to skip whitespace in flow string
-pub function flow_skip_ws(s, pos, slen)
+## Skips whitespace inside a flow string via the shared cursor.
+##
+## ### Parameters
+## - `s`: Source string.
+## - `pos`: Single-element cursor array (mutated in place).
+## - `slen`: Total source length.
+pub function flow_skip_ws(s: string, pos: array, slen: int)
     while pos[0] < slen
         let ch = char_at(s, pos[0])
         if ch == " " or ch == "\t" or ch == "\n" or ch == "\r"
@@ -16,8 +26,16 @@ pub function flow_skip_ws(s, pos, slen)
     end
 end
 
-# Parses a single-quoted string in flow style
-pub function flow_parse_single_quote(s, pos, slen)
+## Parses a single-quoted string in flow style (`''` escapes a quote).
+##
+## ### Parameters
+## - `s`: Source string.
+## - `pos`: Single-element cursor array (mutated in place).
+## - `slen`: Total source length.
+##
+## ### Returns
+## The parsed string value.
+pub function flow_parse_single_quote(s: string, pos: array, slen: int) -> string
     pos[0] += 1
     let res = ""
     while pos[0] < slen
@@ -38,8 +56,16 @@ pub function flow_parse_single_quote(s, pos, slen)
     return res
 end
 
-# Parses a double-quoted string in flow style
-pub function flow_parse_double_quote(s, pos, slen)
+## Parses a double-quoted string in flow style with standard escapes.
+##
+## ### Parameters
+## - `s`: Source string.
+## - `pos`: Single-element cursor array (mutated in place).
+## - `slen`: Total source length.
+##
+## ### Returns
+## The unescaped string value.
+pub function flow_parse_double_quote(s: string, pos: array, slen: int) -> string
     pos[0] += 1
     let raw = ""
     while pos[0] < slen
@@ -49,7 +75,8 @@ pub function flow_parse_double_quote(s, pos, slen)
             break
         elif ch == "\\"
             if pos[0] + 1 < slen
-                raw += "\\" + char_at(s, pos[0] + 1)
+                let esc_ch = char_at(s, pos[0] + 1)
+                raw += "\\{esc_ch}"
                 pos[0] += 2
             else
                 raw += "\\"
@@ -63,8 +90,17 @@ pub function flow_parse_double_quote(s, pos, slen)
     return unescape_double_quoted(raw)
 end
 
-# Parses an unquoted scalar in flow style up to a delimiter (, or ] or } or :)
-pub function flow_parse_plain(s, pos, slen, stop_on_colon = 0)
+## Parses an unquoted scalar up to a delimiter (`,`, `]`, `}`, or `:`).
+##
+## ### Parameters
+## - `s`: Source string.
+## - `pos`: Single-element cursor array (mutated in place).
+## - `slen`: Total source length.
+## - `stop_on_colon`: `1` also stops at `:`. Defaults to `0`.
+##
+## ### Returns
+## The typed scalar value.
+pub function flow_parse_plain(s: string, pos: array, slen: int, stop_on_colon: int = 0)
     let start = pos[0]
     while pos[0] < slen
         let ch = char_at(s, pos[0])
@@ -80,8 +116,16 @@ pub function flow_parse_plain(s, pos, slen, stop_on_colon = 0)
     return parse_scalar(sub)
 end
 
-# Parses an inline flow sequence: [ item1, item2, ... ]
-pub function flow_parse_sequence(s, pos, slen)
+## Parses an inline flow sequence (`[ item1, item2, ... ]`).
+##
+## ### Parameters
+## - `s`: Source string.
+## - `pos`: Single-element cursor array (mutated in place).
+## - `slen`: Total source length.
+##
+## ### Returns
+## The parsed element array.
+pub function flow_parse_sequence(s: string, pos: array, slen: int) -> array
     pos[0] += 1
     let arr = []
     flow_skip_ws(s, pos, slen)
@@ -115,8 +159,16 @@ pub function flow_parse_sequence(s, pos, slen)
     return arr
 end
 
-# Parses an inline flow mapping: { key1: val1, key2: val2, ... }
-pub function flow_parse_mapping(s, pos, slen)
+## Parses an inline flow mapping (`{ key1: val1, ... }`).
+##
+## ### Parameters
+## - `s`: Source string.
+## - `pos`: Single-element cursor array (mutated in place).
+## - `slen`: Total source length.
+##
+## ### Returns
+## The parsed entry map.
+pub function flow_parse_mapping(s: string, pos: array, slen: int)
     pos[0] += 1
     let m = {}
     flow_skip_ws(s, pos, slen)
@@ -167,8 +219,16 @@ pub function flow_parse_mapping(s, pos, slen)
     return m
 end
 
-# Forward declaration helper
-pub function flow_parse_value(s, pos, slen)
+## Dispatches one flow value by its leading character.
+##
+## ### Parameters
+## - `s`: Source string.
+## - `pos`: Single-element cursor array (mutated in place).
+## - `slen`: Total source length.
+##
+## ### Returns
+## The parsed value.
+pub function flow_parse_value(s: string, pos: array, slen: int)
     flow_skip_ws(s, pos, slen)
     if pos[0] >= slen
         return null
@@ -183,8 +243,19 @@ pub function flow_parse_value(s, pos, slen)
     end
 end
 
-# Public convenience helper to parse a flow string
-pub function parse_flow(s)
+## Parses a complete flow string into a native value.
+##
+## ### Parameters
+## - `s`: Flow source string.
+##
+## ### Returns
+## The parsed value.
+##
+## ### Examples
+## ```alya
+## let arr = parse_flow("[1, 2]")
+## ```
+pub function parse_flow(s: string)
     let pos = [0]
     let slen = len(s)
     return flow_parse_value(s, pos, slen)

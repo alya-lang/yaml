@@ -1,18 +1,31 @@
-# YAML 1.2 Block Parser
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # yaml/parser
+##
+## YAML 1.2 block parser.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Preprocesses indented lines, then dispatches sequences, mappings, block
+## scalars (`|`/`>`), flow collections, and multi-document streams.
 
 import "./types.alya"
 import "./scalar.alya"
 import "./flow.alya"
 
+## Preprocessed source line tracking indentation and emptiness.
+##
+## ### Fields
+## - `raw`: Original line string.
+## - `indent`: Leading whitespace width.
+## - `text`: Comment-stripped content string.
+## - `is_empty`: `1` for blank or document-marker lines.
 struct YamlLine
-    raw,
-    indent,
-    text,
-    is_empty
+    raw: string,
+    indent: int,
+    text: string,
+    is_empty: int
 end
 
-function make_line(raw, indent, text, is_empty)
+# Factory constructor for preprocessed lines.
+function make_line(raw: string, indent: int, text: string, is_empty: int) -> YamlLine
     return YamlLine {
         raw: raw,
         indent: indent,
@@ -21,8 +34,8 @@ function make_line(raw, indent, text, is_empty)
     }
 end
 
-# Preprocesses source text into structured lines tracking indentation
-function preprocess_yaml_lines(source)
+# Preprocesses source text into structured lines tracking indentation.
+function preprocess_yaml_lines(source: string) -> array
     let raw_lines = source.split("\n")
     let total = len(raw_lines)
     let res = []
@@ -63,32 +76,39 @@ function preprocess_yaml_lines(source)
     return res
 end
 
-# Finds the key-value colon delimiter outside quotes
-function find_colon_delimiter(text)
+# Finds the key-value colon delimiter outside quotes.
+function find_colon_delimiter(text: string) -> int
     let tlen = len(text)
     let in_single = 0
     let in_double = 0
     let i = 0
     while i < tlen
         let ch = char_at(text, i)
-        if ch == "'" and in_double == 0
-            in_single = 1 - in_single
-        elif ch == "\"" and in_single == 0
-            if i == 0 or char_at(text, i - 1) != "\\"
-                in_double = 1 - in_double
-            end
-        elif ch == ":" and in_single == 0 and in_double == 0
-            if i + 1 == tlen or char_at(text, i + 1) == " " or char_at(text, i + 1) == "\t"
-                return i
-            end
+        when ch
+            is "'" then
+                if in_double == 0
+                    in_single = 1 - in_single
+                end
+            is "\"" then
+                if in_single == 0
+                    if i == 0 or char_at(text, i - 1) != "\\"
+                        in_double = 1 - in_double
+                    end
+                end
+            is ":" then
+                if in_single == 0 and in_double == 0
+                    if i + 1 == tlen or char_at(text, i + 1) == " " or char_at(text, i + 1) == "\t"
+                        return i
+                    end
+                end
         end
         i += 1
     end
     return -1
 end
 
-# Parses multiline literal (|) or folded (>) block scalars
-function parse_block_scalar(lines, idx_ref, parent_indent, is_folded)
+# Parses multiline literal (|) or folded (>) block scalars.
+function parse_block_scalar(lines: array, idx_ref: array, parent_indent: int, is_folded: int) -> string
     let res = ""
     let min_child_indent = -1
     let first = 1
@@ -121,9 +141,9 @@ function parse_block_scalar(lines, idx_ref, parent_indent, is_folded)
             first = 0
         else
             if is_folded == 1
-                res += " " + content
+                res += " {content}"
             else
-                res += "\n" + content
+                res += "\n{content}"
             end
         end
         idx_ref[0] += 1
@@ -135,8 +155,8 @@ function parse_block_scalar(lines, idx_ref, parent_indent, is_folded)
     return res
 end
 
-# Main recursive descent block dispatcher
-function parse_yaml_block(lines, idx_ref, min_indent)
+# Main recursive descent block dispatcher.
+function parse_yaml_block(lines: array, idx_ref: array, min_indent: int)
     let total = len(lines)
     while idx_ref[0] < total and lines[idx_ref[0]].is_empty == 1
         idx_ref[0] += 1
@@ -157,8 +177,8 @@ function parse_yaml_block(lines, idx_ref, min_indent)
     end
 end
 
-# Parses block sequence (- item)
-function parse_sequence_block(lines, idx_ref, seq_indent)
+# Parses block sequence (- item).
+function parse_sequence_block(lines: array, idx_ref: array, seq_indent: int) -> array
     let arr = []
     let total = len(lines)
 
@@ -261,8 +281,8 @@ function parse_sequence_block(lines, idx_ref, seq_indent)
     return arr
 end
 
-# Parses block mapping (key: value)
-function parse_mapping_block(lines, idx_ref, map_indent)
+# Parses block mapping (key: value).
+function parse_mapping_block(lines: array, idx_ref: array, map_indent: int)
     let m = {}
     let total = len(lines)
 
@@ -323,8 +343,19 @@ function parse_mapping_block(lines, idx_ref, map_indent)
     return m
 end
 
-# Parses a single YAML document string
-pub function yaml_parse(source)
+## Parses a single YAML document string into native data.
+##
+## ### Parameters
+## - `source`: YAML document string.
+##
+## ### Returns
+## The parsed value (map, array, scalar, or null).
+##
+## ### Examples
+## ```alya
+## let doc = yaml_parse("a: 1")
+## ```
+pub function yaml_parse(source: string)
     let s = source.trim()
     if len(s) == 0
         return null
@@ -342,8 +373,14 @@ pub function yaml_parse(source)
     return parse_yaml_block(lines, idx, 0)
 end
 
-# Parses multi-document YAML (separated by ---)
-pub function yaml_parse_all(source)
+## Parses multi-document YAML (separated by `---`) into documents.
+##
+## ### Parameters
+## - `source`: Multi-document YAML string.
+##
+## ### Returns
+## Array of parsed non-null documents.
+pub function yaml_parse_all(source: string) -> array
     let parts = source.split("\n---")
     let count = len(parts)
     let docs = []

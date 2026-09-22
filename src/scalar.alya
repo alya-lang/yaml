@@ -1,10 +1,21 @@
-# YAML 1.2 Scalar Parser & Formatter
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # yaml/scalar
+##
+## YAML 1.2 scalar parser and formatter.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Parses null, boolean, integer (hex/octal/binary), float, quoted, and
+## plain scalars into native values, and formats values back to YAML.
 
 import "./types.alya"
 
-# Strips trailing comments while preserving hash symbols inside quotes
-pub function strip_yaml_comment(line)
+## Strips trailing comments while preserving hashes inside quotes.
+##
+## ### Parameters
+## - `line`: Source line string.
+##
+## ### Returns
+## The code portion of the line.
+pub function strip_yaml_comment(line: string) -> string
     let slen = len(line)
     if slen == 0
         return ""
@@ -14,24 +25,31 @@ pub function strip_yaml_comment(line)
     let i = 0
     while i < slen
         let ch = char_at(line, i)
-        if ch == "'" and in_double == 0
-            in_single = 1 - in_single
-        elif ch == "\"" and in_single == 0
-            if i == 0 or char_at(line, i - 1) != "\\"
-                in_double = 1 - in_double
-            end
-        elif ch == "#" and in_single == 0 and in_double == 0
-            if i == 0 or char_at(line, i - 1) == " " or char_at(line, i - 1) == "\t"
-                return line[0..i].trim()
-            end
+        when ch
+            is "'" then
+                if in_double == 0
+                    in_single = 1 - in_single
+                end
+            is "\"" then
+                if in_single == 0
+                    if i == 0 or char_at(line, i - 1) != "\\"
+                        in_double = 1 - in_double
+                    end
+                end
+            is "#" then
+                if in_single == 0 and in_double == 0
+                    if i == 0 or char_at(line, i - 1) == " " or char_at(line, i - 1) == "\t"
+                        return line[0..i].trim()
+                    end
+                end
         end
         i += 1
     end
     return line.trim()
 end
 
-# Parses hexadecimal integer
-function parse_hex_int(s)
+# Parses a signed hexadecimal integer.
+function parse_hex_int(s: string) -> int
     let slen = len(s)
     let start = 2
     let neg = 0
@@ -46,17 +64,16 @@ function parse_hex_int(s)
     while i < slen
         let ch = char_at(s, i)
         let c = ord(ch)
-        let d = 0
-        if c >= 48 and c <= 57
-            d = c - 48
-        elif c >= 65 and c <= 70
-            d = c - 55
-        elif c >= 97 and c <= 102
-            d = c - 87
-        else
-            break
+        when c
+            is 48..57  then
+                res = res * 16 + (c - 48)
+            is 65..70  then
+                res = res * 16 + (c - 55)
+            is 97..102 then
+                res = res * 16 + (c - 87)
+            else
+                break
         end
-        res = res * 16 + d
         i += 1
     end
     if neg == 1
@@ -65,8 +82,8 @@ function parse_hex_int(s)
     return res
 end
 
-# Parses octal integer (0o755)
-function parse_oct_int(s)
+# Parses a signed octal integer (0o755).
+function parse_oct_int(s: string) -> int
     let slen = len(s)
     let start = 2
     let neg = 0
@@ -94,8 +111,8 @@ function parse_oct_int(s)
     return res
 end
 
-# Parses binary integer (0b1010)
-function parse_bin_int(s)
+# Parses a signed binary integer (0b1010).
+function parse_bin_int(s: string) -> int
     let slen = len(s)
     let start = 2
     let neg = 0
@@ -124,8 +141,14 @@ function parse_bin_int(s)
     return res
 end
 
-# Checks if a string represents a decimal integer
-pub function is_decimal_int(s)
+## Checks whether a string represents a decimal integer.
+##
+## ### Parameters
+## - `s`: Candidate string.
+##
+## ### Returns
+## `1` for decimal integers, `0` otherwise.
+pub function is_decimal_int(s: string) -> int
     let slen = len(s)
     if slen == 0
         return 0
@@ -147,8 +170,14 @@ pub function is_decimal_int(s)
     return 1
 end
 
-# Checks if a string represents a decimal float
-pub function is_decimal_float(s)
+## Checks whether a string represents a decimal float.
+##
+## ### Parameters
+## - `s`: Candidate string.
+##
+## ### Returns
+## `1` for dotted decimal floats, `0` otherwise.
+pub function is_decimal_float(s: string) -> int
     let slen = len(s)
     if slen == 0
         return 0
@@ -179,8 +208,14 @@ pub function is_decimal_float(s)
     return has_dot == 1 and has_digit == 1
 end
 
-# Unescapes a double-quoted YAML string
-pub function unescape_double_quoted(s)
+## Unescapes a double-quoted YAML string body.
+##
+## ### Parameters
+## - `s`: Raw string body (without surrounding quotes).
+##
+## ### Returns
+## The unescaped string.
+pub function unescape_double_quoted(s: string) -> string
     let slen = len(s)
     let res = ""
     let i = 0
@@ -225,7 +260,21 @@ pub function unescape_double_quoted(s)
     return res
 end
 
-# Parses a YAML scalar string into its appropriate native Alya typed representation
+## Parses a YAML scalar string into its native typed representation.
+##
+## Handles null, booleans, quoted strings, hex/octal/binary/decimal
+## integers, floats, and plain strings.
+##
+## ### Parameters
+## - `raw`: Raw scalar value.
+##
+## ### Returns
+## The typed native value.
+##
+## ### Examples
+## ```alya
+## say parse_scalar("0x1A") # 26
+## ```
 pub function parse_scalar(raw)
     let s = raw.trim()
     let slen = len(s)
@@ -305,8 +354,16 @@ pub function parse_scalar(raw)
     return s
 end
 
-# Formats an arbitrary scalar value for YAML serialization
-pub function format_scalar(v)
+## Formats an arbitrary scalar value for YAML serialization.
+##
+## Quotes strings that would otherwise scan as non-strings.
+##
+## ### Parameters
+## - `v`: Scalar value.
+##
+## ### Returns
+## The YAML source form string.
+pub function format_scalar(v) -> string
     if is_heap_pointer(v) == 0
         # Integer, boolean (0/1), or small scalar
         return str(v)

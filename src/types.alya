@@ -1,37 +1,77 @@
-# YAML 1.2 Data Types & Definitions
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # yaml/types
+##
+## YAML 1.2 data types and definitions.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Defines node type discriminators, the document container, runtime shape
+## inspection, and string and character utilities.
 
+## YAML node type discriminators.
 pub enum YamlNodeType
-    Null,
-    Bool,
-    Int,
-    Float,
-    String,
-    Array,
-    Map
+    Null = 0,
+    Bool = 1,
+    Int = 2,
+    Float = 3,
+    String = 4,
+    Array = 5,
+    Map = 6
 end
 
-# Document container struct
+## Document container struct.
+##
+## ### Fields
+## - `doc_data`: Parsed document payload (map, array, or scalar).
 pub struct YamlDoc
     doc_data
 end
 
-pub function YamlDoc.get(self)
+## Returns the document payload.
+##
+## ### Parameters
+## - `self`: The target `YamlDoc` instance.
+##
+## ### Returns
+## The document payload value.
+pub function YamlDoc.get(self: YamlDoc)
     return self.doc_data
 end
 
-pub function YamlDoc.data(self)
+## Alias for `get`, returning the document payload.
+##
+## ### Parameters
+## - `self`: The target `YamlDoc` instance.
+##
+## ### Returns
+## The document payload value.
+pub function YamlDoc.data(self: YamlDoc)
     return self.doc_data
 end
 
-pub function make_doc(data)
+## Factory constructor wrapping data into a `YamlDoc`.
+##
+## ### Parameters
+## - `data`: Document payload value.
+##
+## ### Returns
+## The new `YamlDoc` instance.
+pub function make_doc(data) -> YamlDoc
     return YamlDoc {
         doc_data: data
     }
 end
 
+# ───────────────────────────────────────────────────────────────
 # Memory & Runtime Pointer Inspection
-pub function is_heap_pointer(v)
+# ───────────────────────────────────────────────────────────────
+
+## Checks whether a value looks like a heap pointer.
+##
+## ### Parameters
+## - `v`: Value to inspect.
+##
+## ### Returns
+## `1` for plausible heap addresses, `0` otherwise.
+pub function is_heap_pointer(v) -> int
     if v is null or v == 0
         return 0
     end
@@ -41,7 +81,14 @@ pub function is_heap_pointer(v)
     return 1
 end
 
-pub function is_list(v)
+## Checks whether a value is a list object via its runtime magic.
+##
+## ### Parameters
+## - `v`: Value to inspect.
+##
+## ### Returns
+## `1` for lists, `0` otherwise.
+pub function is_list(v) -> int
     if is_heap_pointer(v) == 0
         return 0
     end
@@ -49,7 +96,14 @@ pub function is_list(v)
     return magic == 1511063553
 end
 
-pub function is_map_obj(v)
+## Checks whether a value is a map object via its runtime magic.
+##
+## ### Parameters
+## - `v`: Value to inspect.
+##
+## ### Returns
+## `1` for maps, `0` otherwise.
+pub function is_map_obj(v) -> int
     if is_heap_pointer(v) == 0
         return 0
     end
@@ -57,8 +111,19 @@ pub function is_map_obj(v)
     return magic == 1511063554
 end
 
-# String utility functions
-pub function yaml_str_starts_with(s, prefix)
+# ───────────────────────────────────────────────────────────────
+# String Utility Functions
+# ───────────────────────────────────────────────────────────────
+
+## Checks whether a string starts with a prefix.
+##
+## ### Parameters
+## - `s`: Haystack string.
+## - `prefix`: Prefix string.
+##
+## ### Returns
+## `1` on prefix match, `0` otherwise.
+pub function yaml_str_starts_with(s: string, prefix: string) -> int
     let plen = len(prefix)
     let slen = len(s)
     if plen > slen
@@ -70,7 +135,15 @@ pub function yaml_str_starts_with(s, prefix)
     return s[0..plen] == prefix
 end
 
-pub function yaml_str_ends_with(s, suffix)
+## Checks whether a string ends with a suffix.
+##
+## ### Parameters
+## - `s`: Haystack string.
+## - `suffix`: Suffix string.
+##
+## ### Returns
+## `1` on suffix match, `0` otherwise.
+pub function yaml_str_ends_with(s: string, suffix: string) -> int
     let suflen = len(suffix)
     let slen = len(s)
     if suflen > slen
@@ -82,7 +155,16 @@ pub function yaml_str_ends_with(s, suffix)
     return s[slen - suflen..slen] == suffix
 end
 
-pub function yaml_str_replace(s, old_sub, new_sub)
+## Replaces every occurrence of a substring.
+##
+## ### Parameters
+## - `s`: Source string.
+## - `old_sub`: Needle substring (empty needles return the source).
+## - `new_sub`: Replacement substring.
+##
+## ### Returns
+## The replaced string.
+pub function yaml_str_replace(s: string, old_sub: string, new_sub: string) -> string
     let slen = len(s)
     let olen = len(old_sub)
     if olen == 0 or slen == 0
@@ -102,24 +184,37 @@ pub function yaml_str_replace(s, old_sub, new_sub)
     return res
 end
 
-# Character classification
-function yaml_is_hex_digit(ch)
+# ───────────────────────────────────────────────────────────────
+# Character Classification
+# ───────────────────────────────────────────────────────────────
+
+# Checks if a character is a hexadecimal digit.
+function yaml_is_hex_digit(ch: string) -> int
     let c = ord(ch)
     return (c >= 48 and c <= 57) or (c >= 97 and c <= 102) or (c >= 65 and c <= 70)
 end
 
-function yaml_is_oct_digit(ch)
+# Checks if a character is an octal digit.
+function yaml_is_oct_digit(ch: string) -> int
     let c = ord(ch)
     return c >= 48 and c <= 55
 end
 
-function yaml_is_bin_digit(ch)
+# Checks if a character is a binary digit.
+function yaml_is_bin_digit(ch: string) -> int
     let c = ord(ch)
     return c == 48 or c == 49
 end
 
-# Checks if a map contains a specified key
-pub function map_has_key(m, key)
+## Checks whether a map contains a key.
+##
+## ### Parameters
+## - `m`: Target map value.
+## - `key`: Key string.
+##
+## ### Returns
+## `1` when the key exists, `0` otherwise.
+pub function map_has_key(m, key: string) -> int
     if is_map_obj(m) == 0
         return 0
     end

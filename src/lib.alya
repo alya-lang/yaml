@@ -1,5 +1,10 @@
-# YAML 1.2 Library - Public API Facade
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # yaml
+##
+## YAML 1.2 library public API facade.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Parses YAML strings into native maps, arrays, and scalars, and
+## serializes native data back into formatted YAML documents.
 
 import "./types.alya"
 import "./scalar.alya"
@@ -7,34 +12,78 @@ import "./flow.alya"
 import "./parser.alya"
 import "./serializer.alya"
 
-# Parses a YAML string into native Alya data structures (maps, arrays, scalars)
-pub function parse(yaml_str)
+## Parses a YAML string into native data structures.
+##
+## ### Parameters
+## - `yaml_str`: YAML document string.
+##
+## ### Returns
+## The parsed value (map, array, scalar, or null).
+##
+## ### Examples
+## ```alya
+## let doc = parse("a: 1")
+## ```
+pub function parse(yaml_str: string)
     return yaml_parse(yaml_str)
 end
 
-# Parses a multi-document YAML string (separated by ---) into an array of documents
-pub function parse_all(yaml_str)
+## Parses a multi-document YAML string into an array of documents.
+##
+## Documents are separated by `---` markers.
+##
+## ### Parameters
+## - `yaml_str`: Multi-document YAML string.
+##
+## ### Returns
+## Array of parsed non-null documents.
+pub function parse_all(yaml_str: string) -> array
     return yaml_parse_all(yaml_str)
 end
 
-# Serializes an Alya data structure into a formatted YAML string
-pub function stringify(data, indent_size = 2)
+## Serializes native data into a formatted YAML string.
+##
+## ### Parameters
+## - `data`: Value to serialize.
+## - `indent_size`: Spaces per level. Defaults to `2`.
+##
+## ### Returns
+## The YAML document string.
+pub function stringify(data, indent_size: int = 2) -> string
     return yaml_dump(data, indent_size)
 end
 
-# Alias for stringify
-pub function dump(data, indent_size = 2)
+## Alias for `stringify`.
+##
+## ### Parameters
+## - `data`: Value to serialize.
+## - `indent_size`: Spaces per level. Defaults to `2`.
+##
+## ### Returns
+## The YAML document string.
+pub function dump(data, indent_size: int = 2) -> string
     return yaml_dump(data, indent_size)
 end
 
-# Loads and parses a YAML file from disk
-pub function load_file(file_path)
+## Loads and parses a YAML file from disk.
+##
+## ### Parameters
+## - `file_path`: File path string.
+##
+## ### Returns
+## The parsed value.
+pub function load_file(file_path: string)
     let content = read_file(file_path)
     return parse(content)
 end
 
-# Serializes data and writes it to a YAML file on disk
-pub function dump_file(file_path, data, indent_size = 2)
+## Serializes data and writes it to a YAML file on disk.
+##
+## ### Parameters
+## - `file_path`: File path string.
+## - `data`: Value to serialize.
+## - `indent_size`: Spaces per level. Defaults to `2`.
+pub function dump_file(file_path: string, data, indent_size: int = 2)
     let out = yaml_dump(data, indent_size)
     write_file(file_path, out)
 end
