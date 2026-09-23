@@ -6,7 +6,6 @@
 ## Parses inline sequences (`[a, b]`), mappings (`{k: v}`), quoted strings,
 ## and plain scalars using a shared cursor protocol.
 
-import "./types.alya"
 import "./scalar.alya"
 
 ## Skips whitespace inside a flow string via the shared cursor.

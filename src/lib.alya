@@ -7,8 +7,6 @@
 ## serializes native data back into formatted YAML documents.
 
 import "./types.alya"
-import "./scalar.alya"
-import "./flow.alya"
 import "./parser.alya"
 import "./serializer.alya"
 
