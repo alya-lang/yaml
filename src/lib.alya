@@ -65,11 +65,14 @@ end
 
 ## Loads and parses a YAML file from disk.
 ##
+## Requires the `io` feature (default-on).
+##
 ## ### Parameters
 ## - `file_path`: File path string.
 ##
 ## ### Returns
 ## The parsed value.
+@cfg(feature = "io")
 pub function load_file(file_path: string)
     let content = read_file(file_path)
     return parse(content)
@@ -77,10 +80,13 @@ end
 
 ## Serializes data and writes it to a YAML file on disk.
 ##
+## Requires the `io` feature (default-on).
+##
 ## ### Parameters
 ## - `file_path`: File path string.
 ## - `data`: Value to serialize.
 ## - `indent_size`: Spaces per level. Defaults to `2`.
+@cfg(feature = "io")
 pub function dump_file(file_path: string, data, indent_size: int = 2)
     let out = yaml_dump(data, indent_size)
     write_file(file_path, out)

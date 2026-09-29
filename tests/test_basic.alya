@@ -47,6 +47,17 @@ function main()
     runner_assert_str_eq(r, d5["server"], "localhost", "Parse value with inline comment")
     runner_assert_eq(r, d5["port"], 8080, "Parse integer with inline comment")
 
+    @cfg(feature = "io")
+    check_file_ops(r)
+
+    let failed = runner_summary(r)
+    if failed > 0
+        exit(1)
+    end
+end
+
+@cfg(feature = "io")
+function check_file_ops(r)
     # 6. File I/O (dump_file & load_file)
     let temp_file = "temp_test_config.yaml"
     let sample_data = {
@@ -61,11 +72,5 @@ function main()
     runner_assert_str_eq(r, loaded["service"], "auth-api", "load_file parses string field")
     runner_assert_eq(r, loaded["port"], 9000, "load_file parses integer field")
     fs_remove(temp_file)
-
-    let failed = runner_summary(r)
-    if failed > 0
-        exit(1)
-    end
 end
-
 main()
