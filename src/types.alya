@@ -81,7 +81,13 @@ pub function is_heap_pointer(v) -> int
     return 1
 end
 
-## Checks whether a value is a list object via its runtime magic.
+## Checks whether a value is a list object via its header kind word.
+##
+## Reads only the low 32 bits: on 0.0.20 the high word carries tag bits
+## (0x35A11001 vs 0x5A11001), so a full 64-bit compare misfires.
+## Deliberately not written with `v is array`: the 0.0.20 call-site
+## specializer constant-folds `is` tests inside shared helpers
+## (alya-lang/alya#70), miscompiling every caller at once.
 ##
 ## ### Parameters
 ## - `v`: Value to inspect.
@@ -92,11 +98,13 @@ pub function is_list(v) -> int
     if is_heap_pointer(v) == 0
         return 0
     end
-    let magic = peek_int(v, -16)
-    return magic == 1511063553
+    let magic = peek_int(v, -16) & 0xFFFFFFFF
+    return magic == 0x5A110001
 end
 
-## Checks whether a value is a map object via its runtime magic.
+## Checks whether a value is a map object via its header kind word.
+##
+## See `is_list` for why this uses a masked header read instead of `is`.
 ##
 ## ### Parameters
 ## - `v`: Value to inspect.
@@ -107,8 +115,8 @@ pub function is_map_obj(v) -> int
     if is_heap_pointer(v) == 0
         return 0
     end
-    let magic = peek_int(v, -16)
-    return magic == 1511063554
+    let magic = peek_int(v, -16) & 0xFFFFFFFF
+    return magic == 0x5A110002
 end
 
 # ───────────────────────────────────────────────────────────────
