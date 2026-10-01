@@ -75,7 +75,20 @@ pub function is_heap_pointer(v) -> int
     if v is null or v == 0
         return 0
     end
-    if v < 65536 or v > 140737488355327
+    if v < 65536
+        return 0
+    end
+    if target_arch() == "x86"
+        # 32-bit address space: user heap addresses are positive and
+        # below 2^31, so negatives are immediates. The 2^47 upper bound
+        # below is not expressible here: x86 comparisons are 32-bit and
+        # the low-word compare misfires (a heap address reads greater).
+        if v < 0
+            return 0
+        end
+        return 1
+    end
+    if v > 140737488355327
         return 0
     end
     return 1
@@ -85,6 +98,8 @@ end
 ##
 ## Reads only the low 32 bits: on 0.0.20 the high word carries tag bits
 ## (0x35A11001 vs 0x5A11001), so a full 64-bit compare misfires.
+## The kind word sits at -16 on 64-bit targets but at -8 on x86
+## (32-bit headers; see `fn_rc_retain` in the compiler runtime).
 ## Deliberately not written with `v is array`: the 0.0.20 call-site
 ## specializer constant-folds `is` tests inside shared helpers
 ## (alya-lang/alya#70), miscompiling every caller at once.
@@ -97,6 +112,9 @@ end
 pub function is_list(v) -> int
     if is_heap_pointer(v) == 0
         return 0
+    end
+    if target_arch() == "x86"
+        return peek_int(v, -8) == 0x5A110001
     end
     let magic = peek_int(v, -16) & 0xFFFFFFFF
     return magic == 0x5A110001
@@ -114,6 +132,9 @@ end
 pub function is_map_obj(v) -> int
     if is_heap_pointer(v) == 0
         return 0
+    end
+    if target_arch() == "x86"
+        return peek_int(v, -8) == 0x5A110002
     end
     let magic = peek_int(v, -16) & 0xFFFFFFFF
     return magic == 0x5A110002
