@@ -37,7 +37,7 @@ function main()
     let d3 = {
         "cluster": {
             "name": "prod-east",
-            "active": 1,
+            "active": true,
             "nodes": [
                 { "id": "node-1", "ip": "10.0.0.1" },
                 { "id": "node-2", "ip": "10.0.0.2" }
@@ -47,7 +47,7 @@ function main()
     let s3 = yaml::stringify(d3)
     let parsed3 = yaml::parse(s3)
     runner_assert_str_eq(r, parsed3["cluster"]["name"], "prod-east", "Nested roundtrip cluster name")
-    runner_assert_eq(r, parsed3["cluster"]["active"], 1, "Nested roundtrip active boolean")
+    runner_assert_eq(r, parsed3["cluster"]["active"], true, "Nested roundtrip active boolean")
     let nodes = parsed3["cluster"]["nodes"]
     runner_assert_eq(r, len(nodes), 2, "Nested roundtrip nodes count")
     runner_assert_str_eq(r, nodes[0]["id"], "node-1", "Node 0 id")

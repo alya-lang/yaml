@@ -35,7 +35,7 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
         return "null\n"
     end
 
-    if is_list(val) == 1
+    if is_list(val) == true
         let count = len(val)
         if count == 0
             return "[]\n"
@@ -43,7 +43,7 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
         let pad = make_indent_str(level, indent_size)
         let res = ""
         for item in val
-            if is_map_obj(item) == 1
+            if is_map_obj(item) == true
                 let ks = keys(item)
                 let klen = len(ks)
                 if klen == 0
@@ -51,7 +51,7 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
                 else
                     let first_k = ks[0]
                     let first_v = item[first_k]
-                    if is_map_obj(first_v) == 1 or is_list(first_v) == 1
+                    if is_map_obj(first_v) == true or is_list(first_v) == true
                         res += "{pad}- {first_k}:\n"
                         let child = serialize_yaml_child(first_v, level + 2, indent_size)
                         res += child
@@ -65,7 +65,7 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
                     while j < klen
                         let k = ks[j]
                         let v = item[k]
-                        if is_map_obj(v) == 1 or is_list(v) == 1
+                        if is_map_obj(v) == true or is_list(v) == true
                             res += "{sub_pad}{k}:\n"
                             let child = serialize_yaml_child(v, level + 2, indent_size)
                             res += child
@@ -76,7 +76,7 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
                         j += 1
                     end
                 end
-            elif is_list(item) == 1
+            elif is_list(item) == true
                 let sub_count = len(item)
                 if sub_count == 0
                     res += "{pad}- []\n"
@@ -91,7 +91,7 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
             end
         end
         return res
-    elif is_map_obj(val) == 1
+    elif is_map_obj(val) == true
         let ks = keys(val)
         let klen = len(ks)
         if klen == 0
@@ -101,7 +101,7 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
         let res = ""
         for k in ks
             let v = val[k]
-            if is_map_obj(v) == 1
+            if is_map_obj(v) == true
                 let sub_klen = len(keys(v))
                 if sub_klen == 0
                     res += "{pad}{k}: {{}}\n"
@@ -110,7 +110,7 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
                     let child = serialize_yaml_child(v, level + 1, indent_size)
                     res += child
                 end
-            elif is_list(v) == 1
+            elif is_list(v) == true
                 let sub_arr_len = len(v)
                 if sub_arr_len == 0
                     res += "{pad}{k}: []\n"

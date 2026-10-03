@@ -15,18 +15,18 @@ function main()
     runner_assert_str_eq(r, d1["title"], "YAML 1.2", "Parse plain string")
     runner_assert_eq(r, d1["count"], 42, "Parse positive integer")
     runner_assert_eq(r, d1["negative"], -17, "Parse negative integer")
-    runner_assert_true(r, d1["enabled"] == 1, "Parse boolean true")
-    runner_assert_true(r, d1["debug"] == 0, "Parse boolean false")
+    runner_assert_true(r, d1["enabled"] == true, "Parse boolean true")
+    runner_assert_true(r, d1["debug"] == false, "Parse boolean false")
     runner_assert_true(r, d1["empty_val"] is null, "Parse null keyword")
     runner_assert_true(r, d1["tilde_val"] is null, "Parse tilde as null")
 
     # 2. Alternative Boolean keywords (yes/no, on/off)
     let y2 = "flag_yes: yes\nflag_no: no\nflag_on: ON\nflag_off: off\n"
     let d2 = yaml::parse(y2)
-    runner_assert_eq(r, d2["flag_yes"], 1, "Parse yes as true")
-    runner_assert_eq(r, d2["flag_no"], 0, "Parse no as false")
-    runner_assert_eq(r, d2["flag_on"], 1, "Parse ON as true")
-    runner_assert_eq(r, d2["flag_off"], 0, "Parse off as false")
+    runner_assert_eq(r, d2["flag_yes"], true, "Parse yes as true")
+    runner_assert_eq(r, d2["flag_no"], false, "Parse no as false")
+    runner_assert_eq(r, d2["flag_on"], true, "Parse ON as true")
+    runner_assert_eq(r, d2["flag_off"], false, "Parse off as false")
 
     # 3. Number Formats (Hexadecimal, Octal, Binary)
     let y3 = "hex_num: 0x1F\noct_num: 0o755\nbin_num: 0b1011\n"
@@ -63,7 +63,7 @@ function check_file_ops(r)
     let sample_data = {
         "service": "auth-api",
         "port": 9000,
-        "active": 1
+        "active": true
     }
     yaml::dump_file(temp_file, sample_data)
     runner_assert_true(r, fs_exists(temp_file), "dump_file writes YAML file to disk")

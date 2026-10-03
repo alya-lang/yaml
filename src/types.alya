@@ -73,15 +73,15 @@ end
 ## `1` for plausible heap addresses, `0` otherwise.
 pub function is_heap_pointer(v) -> int
     if v is null or v == 0
-        return 0
+        return false
     end
     if v < 65536
-        return 0
+        return false
     end
     if v > 140737488355327
-        return 0
+        return false
     end
-    return 1
+    return true
 end
 
 ## Checks whether a value is a list object.
@@ -93,9 +93,9 @@ end
 ## `1` for lists, `0` otherwise.
 pub function is_list(v) -> int
     if v is array
-        return 1
+        return true
     end
-    return 0
+    return false
 end
 
 ## Checks whether a value is a map object.
@@ -107,9 +107,9 @@ end
 ## `1` for maps, `0` otherwise.
 pub function is_map_obj(v) -> int
     if v is map
-        return 1
+        return true
     end
-    return 0
+    return false
 end
 
 # ───────────────────────────────────────────────────────────────
@@ -128,10 +128,10 @@ pub function yaml_str_starts_with(s: string, prefix: string) -> int
     let plen = len(prefix)
     let slen = len(s)
     if plen > slen
-        return 0
+        return false
     end
     if plen == 0
-        return 1
+        return true
     end
     return s[0..plen] == prefix
 end
@@ -148,10 +148,10 @@ pub function yaml_str_ends_with(s: string, suffix: string) -> int
     let suflen = len(suffix)
     let slen = len(s)
     if suflen > slen
-        return 0
+        return false
     end
     if suflen == 0
-        return 1
+        return true
     end
     return s[slen - suflen..slen] == suffix
 end
@@ -216,8 +216,8 @@ end
 ## ### Returns
 ## `1` when the key exists, `0` otherwise.
 pub function map_has_key(m, key: string) -> int
-    if is_map_obj(m) == 0
-        return 0
+    if is_map_obj(m) == false
+        return false
     end
     return key in m
 end

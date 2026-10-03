@@ -52,9 +52,9 @@ end
 function parse_hex_int(s: string) -> int
     let slen = len(s)
     let start = 2
-    let neg = 0
+    let neg = false
     if char_at(s, 0) == "-"
-        neg = 1
+        neg = true
         start = 3
     elif char_at(s, 0) == "+"
         start = 3
@@ -76,7 +76,7 @@ function parse_hex_int(s: string) -> int
         end
         i += 1
     end
-    if neg == 1
+    if neg == true
         return -res
     end
     return res
@@ -86,9 +86,9 @@ end
 function parse_oct_int(s: string) -> int
     let slen = len(s)
     let start = 2
-    let neg = 0
+    let neg = false
     if char_at(s, 0) == "-"
-        neg = 1
+        neg = true
         start = 3
     elif char_at(s, 0) == "+"
         start = 3
@@ -105,7 +105,7 @@ function parse_oct_int(s: string) -> int
         end
         i += 1
     end
-    if neg == 1
+    if neg == true
         return -res
     end
     return res
@@ -115,9 +115,9 @@ end
 function parse_bin_int(s: string) -> int
     let slen = len(s)
     let start = 2
-    let neg = 0
+    let neg = false
     if char_at(s, 0) == "-"
-        neg = 1
+        neg = true
         start = 3
     elif char_at(s, 0) == "+"
         start = 3
@@ -135,7 +135,7 @@ function parse_bin_int(s: string) -> int
         end
         i += 1
     end
-    if neg == 1
+    if neg == true
         return -res
     end
     return res
@@ -151,23 +151,23 @@ end
 pub function is_decimal_int(s: string) -> int
     let slen = len(s)
     if slen == 0
-        return 0
+        return false
     end
     let i = 0
     if char_at(s, 0) == "-" or char_at(s, 0) == "+"
         i = 1
         if slen == 1
-            return 0
+            return false
         end
     end
     while i < slen
         let ch = char_at(s, i)
-        if is_digit(ch) == 0
-            return 0
+        if is_digit(ch) == false
+            return false
         end
         i += 1
     end
-    return 1
+    return true
 end
 
 ## Checks whether a string represents a decimal float.
@@ -180,32 +180,32 @@ end
 pub function is_decimal_float(s: string) -> int
     let slen = len(s)
     if slen == 0
-        return 0
+        return false
     end
     let i = 0
     if char_at(s, 0) == "-" or char_at(s, 0) == "+"
         i = 1
         if slen == 1
-            return 0
+            return false
         end
     end
-    let has_dot = 0
-    let has_digit = 0
+    let has_dot = false
+    let has_digit = false
     while i < slen
         let ch = char_at(s, i)
         if ch == "."
-            if has_dot == 1
-                return 0
+            if has_dot == true
+                return false
             end
-            has_dot = 1
-        elif is_digit(ch) == 1
-            has_digit = 1
+            has_dot = true
+        elif is_digit(ch) == true
+            has_digit = true
         else
-            return 0
+            return false
         end
         i += 1
     end
-    return has_dot == 1 and has_digit == 1
+    return has_dot == true and has_digit == true
 end
 
 ## Unescapes a double-quoted YAML string body.
@@ -289,10 +289,10 @@ pub function parse_scalar(raw)
 
     # 2. Boolean values
     if s == "true" or s == "True" or s == "TRUE" or s == "yes" or s == "Yes" or s == "YES" or s == "on" or s == "On" or s == "ON"
-        return 1
+        return true
     end
     if s == "false" or s == "False" or s == "FALSE" or s == "no" or s == "No" or s == "NO" or s == "off" or s == "Off" or s == "OFF"
-        return 0
+        return false
     end
 
     # 3. Single-quoted strings: 'text' (no escape except '')
@@ -332,7 +332,7 @@ pub function parse_scalar(raw)
     end
 
     # 8. Decimal integers
-    if is_decimal_int(s) == 1
+    if is_decimal_int(s) == true
         return int(s)
     end
 
@@ -346,7 +346,7 @@ pub function parse_scalar(raw)
     if s == "-.inf" or s == "-.Inf"
         return -1e18
     end
-    if is_decimal_float(s) == 1
+    if is_decimal_float(s) == true
         return float(s)
     end
 
@@ -364,7 +364,7 @@ end
 ## ### Returns
 ## The YAML source form string.
 pub function format_scalar(v) -> string
-    if is_heap_pointer(v) == 0
+    if is_heap_pointer(v) == false
         # Integer, boolean (0/1), or small scalar
         return str(v)
     end
@@ -375,22 +375,22 @@ pub function format_scalar(v) -> string
     end
 
     # Check if quotes are necessary:
-    let needs_quote = 0
+    let needs_quote = false
     if char_at(s, 0) == " " or char_at(s, slen - 1) == " "
-        needs_quote = 1
+        needs_quote = true
     elif s.contains(":") or s.contains("#") or s.contains("\n") or s.contains("\"") or s.contains("'")
-        needs_quote = 1
+        needs_quote = true
     elif s.contains("[") or s.contains("]") or s.contains("{") or s.contains("}")
-        needs_quote = 1
+        needs_quote = true
     elif char_at(s, 0) == "-" or char_at(s, 0) == "?" or char_at(s, 0) == "*" or char_at(s, 0) == "&"
-        needs_quote = 1
+        needs_quote = true
     elif s == "true" or s == "false" or s == "null" or s == "yes" or s == "no"
-        needs_quote = 1
-    elif is_decimal_int(s) == 1 or is_decimal_float(s) == 1
-        needs_quote = 1
+        needs_quote = true
+    elif is_decimal_int(s) == true or is_decimal_float(s) == true
+        needs_quote = true
     end
 
-    if needs_quote == 1
+    if needs_quote == true
         # Format as double-quoted string with escapes
         let res = "\""
         let i = 0

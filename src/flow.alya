@@ -106,7 +106,7 @@ pub function flow_parse_plain(s: string, pos: array, slen: int, stop_on_colon: i
         if ch == "," or ch == "]" or ch == "}"
             break
         end
-        if stop_on_colon == 1 and ch == ":"
+        if stop_on_colon == true and ch == ":"
             break
         end
         pos[0] += 1
@@ -192,7 +192,7 @@ pub function flow_parse_mapping(s: string, pos: array, slen: int)
             is "'"  then key_str = flow_parse_single_quote(s, pos, slen)
             is "\"" then key_str = flow_parse_double_quote(s, pos, slen)
             else
-                let raw_k = flow_parse_plain(s, pos, slen, 1)
+                let raw_k = flow_parse_plain(s, pos, slen, true)
                 key_str = str(raw_k)
         end
 
@@ -238,7 +238,7 @@ pub function flow_parse_value(s: string, pos: array, slen: int)
         is "{"  then return flow_parse_mapping(s, pos, slen)
         is "'"  then return flow_parse_single_quote(s, pos, slen)
         is "\"" then return flow_parse_double_quote(s, pos, slen)
-        else         return flow_parse_plain(s, pos, slen, 0)
+        else         return flow_parse_plain(s, pos, slen, false)
     end
 end
 
