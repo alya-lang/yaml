@@ -148,7 +148,7 @@ end
 ##
 ## ### Returns
 ## `1` for decimal integers, `0` otherwise.
-pub function is_decimal_int(s: string) -> int
+pub function is_decimal_int(s: string) -> bool
     let slen = len(s)
     if slen == 0
         return false
@@ -177,7 +177,7 @@ end
 ##
 ## ### Returns
 ## `1` for dotted decimal floats, `0` otherwise.
-pub function is_decimal_float(s: string) -> int
+pub function is_decimal_float(s: string) -> bool
     let slen = len(s)
     if slen == 0
         return false

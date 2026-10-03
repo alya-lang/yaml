@@ -71,7 +71,7 @@ end
 ##
 ## ### Returns
 ## `1` for plausible heap addresses, `0` otherwise.
-pub function is_heap_pointer(v) -> int
+pub function is_heap_pointer(v) -> bool
     if v is null or v == 0
         return false
     end
@@ -91,7 +91,7 @@ end
 ##
 ## ### Returns
 ## `1` for lists, `0` otherwise.
-pub function is_list(v) -> int
+pub function is_list(v) -> bool
     if v is array
         return true
     end
@@ -105,7 +105,7 @@ end
 ##
 ## ### Returns
 ## `1` for maps, `0` otherwise.
-pub function is_map_obj(v) -> int
+pub function is_map_obj(v) -> bool
     if v is map
         return true
     end
@@ -124,7 +124,7 @@ end
 ##
 ## ### Returns
 ## `1` on prefix match, `0` otherwise.
-pub function yaml_str_starts_with(s: string, prefix: string) -> int
+pub function yaml_str_starts_with(s: string, prefix: string) -> bool
     let plen = len(prefix)
     let slen = len(s)
     if plen > slen
@@ -144,7 +144,7 @@ end
 ##
 ## ### Returns
 ## `1` on suffix match, `0` otherwise.
-pub function yaml_str_ends_with(s: string, suffix: string) -> int
+pub function yaml_str_ends_with(s: string, suffix: string) -> bool
     let suflen = len(suffix)
     let slen = len(s)
     if suflen > slen
@@ -190,19 +190,19 @@ end
 # ───────────────────────────────────────────────────────────────
 
 # Checks if a character is a hexadecimal digit.
-function yaml_is_hex_digit(ch: string) -> int
+function yaml_is_hex_digit(ch: string) -> bool
     let c = ord(ch)
     return (c >= 48 and c <= 57) or (c >= 97 and c <= 102) or (c >= 65 and c <= 70)
 end
 
 # Checks if a character is an octal digit.
-function yaml_is_oct_digit(ch: string) -> int
+function yaml_is_oct_digit(ch: string) -> bool
     let c = ord(ch)
     return c >= 48 and c <= 55
 end
 
 # Checks if a character is a binary digit.
-function yaml_is_bin_digit(ch: string) -> int
+function yaml_is_bin_digit(ch: string) -> bool
     let c = ord(ch)
     return c == 48 or c == 49
 end
