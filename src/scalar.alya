@@ -66,11 +66,11 @@ function parse_hex_int(s: string) -> int
         let c = ord(ch)
         when c
             is 48..57  then
-                res = res * 16 + (c - 48)
+                res *= 16 + (c - 48)
             is 65..70  then
-                res = res * 16 + (c - 55)
+                res *= 16 + (c - 55)
             is 97..102 then
-                res = res * 16 + (c - 87)
+                res *= 16 + (c - 87)
             else
                 break
         end
@@ -99,7 +99,7 @@ function parse_oct_int(s: string) -> int
         let ch = char_at(s, i)
         let c = ord(ch)
         if c >= 48 and c <= 55
-            res = res * 8 + (c - 48)
+            res *= 8 + (c - 48)
         else
             break
         end
@@ -127,9 +127,9 @@ function parse_bin_int(s: string) -> int
     while i < slen
         let ch = char_at(s, i)
         if ch == "0"
-            res = res * 2
+            res *= 2
         elif ch == "1"
-            res = res * 2 + 1
+            res *= 2 + 1
         else
             break
         end
