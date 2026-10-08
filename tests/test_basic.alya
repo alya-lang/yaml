@@ -40,6 +40,9 @@ function main()
     let d4 = yaml::parse(y4)
     runner_assert_str_eq(r, d4["single"], "Hello 'World'", "Single quoted string with escaped quote")
     runner_assert_str_eq(r, d4["double"], "Line 1\nLine 2\tTabbed", "Double quoted string with escapes")
+    let y4b = "nul: \"a\\0b\"\n"
+    let d4b = yaml::parse(y4b)
+    runner_assert_str_eq(r, d4b["nul"], "ab", "NUL escape dropped: strings cannot hold NUL bytes (alya-lang/alya#129)")
 
     # 5. Full-line and Inline Comments
     let y5 = "# Global configuration\nserver: localhost # Default host\nport: 8080 # Main HTTP port\n# End of config\n"

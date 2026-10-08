@@ -240,7 +240,8 @@ pub function unescape_double_quoted(s: string) -> string
                     res += "\\"
                     i += 2
                 is "0" then
-                    res += chr(0)
+                    # NUL is unrepresentable in Alya strings (alya-lang/alya#129):
+                    # drop it explicitly instead of relying on chr(0).
                     i += 2
                 is "b" then
                     res += chr(8)
