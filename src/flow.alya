@@ -75,7 +75,7 @@ pub function flow_parse_double_quote(s: string, pos: array, slen: int) -> string
         elif ch == "\\"
             if pos[0] + 1 < slen
                 let esc_ch = char_at(s, pos[0] + 1)
-                raw += "\\{esc_ch}"
+                raw += f"\\{esc_ch}"
                 pos[0] += 2
             else
                 raw += "\\"

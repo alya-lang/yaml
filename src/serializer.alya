@@ -47,31 +47,31 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
                 let ks = keys(item)
                 let klen = len(ks)
                 if klen == 0
-                    res += "{pad}- {{}}\n"
+                    res += f"{pad}- {{}}\n"
                 else
                     let first_k = ks[0]
                     let first_v = item[first_k]
                     if is_map_obj(first_v) == true or is_list(first_v) == true
-                        res += "{pad}- {first_k}:\n"
+                        res += f"{pad}- {first_k}:\n"
                         let child = serialize_yaml_child(first_v, level + 2, indent_size)
                         res += child
                     else
                         let first_fmt = format_scalar(first_v)
-                        res += "{pad}- {first_k}: {first_fmt}\n"
+                        res += f"{pad}- {first_k}: {first_fmt}\n"
                     end
 
-                    let sub_pad = "{pad}  "
+                    let sub_pad = f"{pad}  "
                     let j = 1
                     while j < klen
                         let k = ks[j]
                         let v = item[k]
                         if is_map_obj(v) == true or is_list(v) == true
-                            res += "{sub_pad}{k}:\n"
+                            res += f"{sub_pad}{k}:\n"
                             let child = serialize_yaml_child(v, level + 2, indent_size)
                             res += child
                         else
                             let v_fmt = format_scalar(v)
-                            res += "{sub_pad}{k}: {v_fmt}\n"
+                            res += f"{sub_pad}{k}: {v_fmt}\n"
                         end
                         j += 1
                     end
@@ -79,15 +79,15 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
             elif is_list(item) == true
                 let sub_count = len(item)
                 if sub_count == 0
-                    res += "{pad}- []\n"
+                    res += f"{pad}- []\n"
                 else
-                    res += "{pad}-\n"
+                    res += f"{pad}-\n"
                     let child = serialize_yaml_child(item, level + 1, indent_size)
                     res += child
                 end
             else
                 let item_fmt = format_scalar(item)
-                res += "{pad}- {item_fmt}\n"
+                res += f"{pad}- {item_fmt}\n"
             end
         end
         return res
@@ -104,30 +104,30 @@ pub function serialize_yaml_value(val, level: int, indent_size: int) -> string
             if is_map_obj(v) == true
                 let sub_klen = len(keys(v))
                 if sub_klen == 0
-                    res += "{pad}{k}: {{}}\n"
+                    res += f"{pad}{k}: {{}}\n"
                 else
-                    res += "{pad}{k}:\n"
+                    res += f"{pad}{k}:\n"
                     let child = serialize_yaml_child(v, level + 1, indent_size)
                     res += child
                 end
             elif is_list(v) == true
                 let sub_arr_len = len(v)
                 if sub_arr_len == 0
-                    res += "{pad}{k}: []\n"
+                    res += f"{pad}{k}: []\n"
                 else
-                    res += "{pad}{k}:\n"
+                    res += f"{pad}{k}:\n"
                     let child = serialize_yaml_child(v, level + 1, indent_size)
                     res += child
                 end
             else
                 let v_fmt = format_scalar(v)
-                res += "{pad}{k}: {v_fmt}\n"
+                res += f"{pad}{k}: {v_fmt}\n"
             end
         end
         return res
     else
         let top_fmt = format_scalar(val)
-        return "{top_fmt}\n"
+        return f"{top_fmt}\n"
     end
 end
 

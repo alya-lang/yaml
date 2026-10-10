@@ -141,9 +141,9 @@ function parse_block_scalar(lines: array, idx_ref: array, parent_indent: int, is
             first = false
         else
             if is_folded == true
-                res += " {content}"
+                res += f" {content}"
             else
-                res += "\n{content}"
+                res += f"\n{content}"
             end
         end
         idx_ref[0] += 1
